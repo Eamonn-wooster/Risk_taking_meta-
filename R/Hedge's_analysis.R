@@ -206,6 +206,36 @@ round(i2_ml(mod.overall), 2)
 
 unique(data$Behaviour_type)
 
+mod.behav <- rma.mv(yi = yi, V = vcv,
+                      random = list(~1 | Title,
+                                    ~1 | Species, # phylo effect 
+                                    ~1 | Species2, # non-phylo effect 
+                                    ~1 | Obs_ID), 
+                      data =  es,
+                      mods = ~ Behaviour_type -1,
+                      test = "t",
+                      sparse = TRUE,
+                      R = list(Species = cor1))
+
+summary(mod.behav)
+
+#Sex##
+
+mod.sex <- rma.mv(yi = yi, V = vcv,
+                    random = list(~1 | Title,
+                                  ~1 | Species, # phylo effect 
+                                  ~1 | Species2, # non-phylo effect 
+                                  ~1 | Obs_ID), 
+                    data =  es,
+                    mods = ~ Sex -1,
+                    test = "t",
+                    sparse = TRUE,
+                    R = list(Species = cor1))
+
+summary(mod.sex)
+
+
+
 
 
 
@@ -251,4 +281,17 @@ I2 = round(i2_ml(mod.overall_cv), 2)
 overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking (log transformed variability ratio)", group = "Title",
                         angle = 0)
 overall_cv
+
+mod.behav_cv <- rma.mv(yi = yi, V = vcv_cv,
+                    random = list(~1 | Title,
+                                  ~1 | Species, # phylo effect 
+                                  ~1 | Species2, # non-phylo effect 
+                                  ~1 | Obs_ID), 
+                    data =  cv,
+                    mods = ~ Behaviour_type -1,
+                    test = "t",
+                    sparse = TRUE,
+                    R = list(Species = cor1))
+
+summary(mod.behav_cv)
 
