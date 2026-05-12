@@ -235,15 +235,63 @@ mod.sex <- rma.mv(yi = yi, V = vcv,
 summary(mod.sex)
 
 
+#Pred_pressure#######
+
+mod.pp <- rma.mv(yi = yi, V = vcv,
+                  random = list(~1 | Title,
+                                ~1 | Species, # phylo effect 
+                                ~1 | Species2, # non-phylo effect 
+                                ~1 | Obs_ID), 
+                  data =  es,
+                  mods = ~ Predation_pressure -1,
+                  test = "t",
+                  sparse = TRUE,
+                  R = list(Species = cor1))
+
+summary(mod.pp)
+
+
+#real vs simulated pred#######
+
+#convert es$real_predator to a factor
+es$Real_predator <- as.factor(es$Real_predator)
+
+str(es)
+
+
+mod.rp <- rma.mv(yi = yi, V = vcv,
+                 random = list(~1 | Title,
+                               ~1 | Species, # phylo effect 
+                               ~1 | Species2, # non-phylo effect 
+                               ~1 | Obs_ID), 
+                 data =  es,
+                 mods = ~ Real_predator -1,
+                 test = "t",
+                 sparse = TRUE,
+                 R = list(Species = cor1))
+
+summary(mod.rp)
+
+#low vs no predator###
+
+mod.ln <- rma.mv(yi = yi, V = vcv,
+                 random = list(~1 | Title,
+                               ~1 | Species, # phylo effect 
+                               ~1 | Species2, # non-phylo effect 
+                               ~1 | Obs_ID), 
+                 data =  es,
+                 mods = ~ Low_or_no_pred -1,
+                 test = "t",
+                 sparse = TRUE,
+                 R = list(Species = cor1))
+
+summary(mod.ln)
 
 
 
+##############lnVR models##################
 
-
-
-##############lnCVR models##################
-
-# Calculate lnCVR
+# Calculate lnVR
 
 cv <- escalc(
   measure = "VR",       # standardized mean difference
@@ -282,6 +330,8 @@ overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking 
                         angle = 0)
 overall_cv
 
+#CV_ behaviour type####
+
 mod.behav_cv <- rma.mv(yi = yi, V = vcv_cv,
                     random = list(~1 | Title,
                                   ~1 | Species, # phylo effect 
@@ -294,4 +344,55 @@ mod.behav_cv <- rma.mv(yi = yi, V = vcv_cv,
                     R = list(Species = cor1))
 
 summary(mod.behav_cv)
+
+#CV_ Sex##
+
+
+mod.sex.cv <- rma.mv(yi = yi, V = vcv_cv,
+                  random = list(~1 | Title,
+                                ~1 | Species, # phylo effect 
+                                ~1 | Species2, # non-phylo effect 
+                                ~1 | Obs_ID), 
+                  data =  cv,
+                  mods = ~ Sex -1,
+                  test = "t",
+                  sparse = TRUE,
+                  R = list(Species = cor1))
+
+summary(mod.sex)
+
+#CV_real vs sim#######
+
+cv$Real_predator <- as.factor(cv$Real_predator)
+
+str(cv)
+
+
+mod.rp.cv <- rma.mv(yi = yi, V = vcv_cv,
+                 random = list(~1 | Title,
+                               ~1 | Species, # phylo effect 
+                               ~1 | Species2, # non-phylo effect 
+                               ~1 | Obs_ID), 
+                 data =  cv,
+                 mods = ~ Real_predator -1,
+                 test = "t",
+                 sparse = TRUE,
+                 R = list(Species = cor1))
+
+summary(mod.rp.cv)
+
+#CV low vs no predator###
+
+mod.ln.cv <- rma.mv(yi = yi, V = vcv_cv,
+                 random = list(~1 | Title,
+                               ~1 | Species, # phylo effect 
+                               ~1 | Species2, # non-phylo effect 
+                               ~1 | Obs_ID), 
+                 data =  cv,
+                 mods = ~ Low_or_no_pred -1,
+                 test = "t",
+                 sparse = TRUE,
+                 R = list(Species = cor1))
+
+summary(mod.ln.cv)
 
