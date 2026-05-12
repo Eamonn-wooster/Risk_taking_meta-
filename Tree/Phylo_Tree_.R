@@ -87,9 +87,9 @@ setdiff(Species_tree$tip.label, Species$Species)
 
 out <- as.data.frame(Species_tree$tip.label)
 
-write.csv(out, here("Outputs/Species_tree.csv"))
+write.csv(out, here("Tree/Species_tree.csv"))
 
-write.csv(dat, here("Outputs/Dat_for_analysis-ss-tree.csv")) 
+write.csv(dat, here("Tree/Dat_for_analysis-ss-tree.csv")) 
 
 ## Species_tree appended to dat manually ##
 
@@ -99,5 +99,5 @@ tree1_Rev4 <- Species_tree
 
 plot(tree1_Rev4, no.margin = TRUE)
 
-write.tree(tree1_Rev4, file = here("Outputs/Tree_fire-Rev4.tre"))
+write.tree(tree1_Rev4, file = here("Tree/Tree_risk.tre"))
 
