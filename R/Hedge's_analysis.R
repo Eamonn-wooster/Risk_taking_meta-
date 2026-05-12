@@ -1,5 +1,5 @@
-################### Effect Size & Meta analysis Modelling #####################
-## Authors: EW & CM
+################### Hedges g effect size #####################
+
 
 
 #################################################################################
@@ -39,11 +39,21 @@ here()
 
 # Reading in Data
 
-dat <- read.csv(here("Outputs/Dat_for_analysis-ss-mass-biome-clim-fireact-tax-Rev4.csv")) 
+dat <- read.csv(here("Data/Analysis_ready.csv")) 
+
+#change a few specie names for analysis
+
+dat$Species <- gsub("Equus_quagga","Equus_burchellii_quagga", dat$Species)
+dat$Species <- gsub("Macropus_eugenii","Notamacropus_eugenii",  dat$Species)
+dat$Species <- gsub("Hyla_versicolor", "Dryophytes_versicolor",  dat$Species)
+dat$Species <- gsub("Bufo_americanus", "Anaxyrus_americanus",  dat$Species)
+dat$Species <- gsub( "Gambusiaa_hubbsi","Gambusia_hubbsi",  dat$Species)
+dat$Species <- gsub( "Gambusia_hubbsi ","Gambusia_hubbsi",  dat$Species)
+dat$Species <- gsub( "Brachyraphis_episcopi","Brachyrhaphis_episcopi",  dat$Species)
 
 # Reading in tree
 
-tree1 <- read.tree(here("Outputs/Tree_fire-Rev4.tre")) 
+tree1 <- read.tree(here("Tree/Tree_risk.tre")) 
 
 # Getting branch length and correlation matrix
 
@@ -52,7 +62,8 @@ cor1 <-  vcv(tree1b, corr=T)
 
 # checking the match 
 
-setdiff(dat$Species_tree, tree1$tip.label)
+setdiff(dat$Species, tree1$tip.label)
+setdiff(tree1$tip.label, dat$Species)
 
 #' [EW - This HAS to return character(0) for the model to run]
 
