@@ -28,7 +28,8 @@ pacman::p_load(devtools,
                Matrix, # added
                matrixcalc,# added
                ape, # added
-               multcomp 
+               multcomp,
+               taxize
            #added
                # miWQS #added
 ) 
@@ -129,12 +130,9 @@ SE$SD_exp_trans <- se_to_sd(SE$SD_exp, SE$n_exp)
 
 data <- rbind(SD, CI, SE)
 
-#################################################################################
-############################ Cleaning Data ######################################
-#################################################################################
 
 #################################################################################
-############################ Overall Effect Size ################################
+############################ Hedges Effect Size ################################
 #################################################################################
 
 # Calculate Hedges' g
@@ -316,6 +314,13 @@ mod.com <- rma.mv(yi = yi, V = vcv,
                  R = list(Species = cor1))
 
 summary(mod.com)
+
+###Class##########
+
+
+
+
+
 
 ###publication bias####### only doing mean shifts bc thats what we extracted for 
 
