@@ -287,9 +287,174 @@ mod.ln <- rma.mv(yi = yi, V = vcv,
 
 summary(mod.ln)
 
+#adult vs juvenille###
+
+mod.aj <- rma.mv(yi = yi, V = vcv,
+                 random = list(~1 | Title,
+                               ~1 | Species, # phylo effect 
+                               ~1 | Species2, # non-phylo effect 
+                               ~1 | Obs_ID), 
+                 data =  es,
+                 mods = ~ Adult -1,
+                 test = "t",
+                 sparse = TRUE,
+                 R = list(Species = cor1))
+
+summary(mod.aj)
+
+#comp type###
+
+mod.com <- rma.mv(yi = yi, V = vcv,
+                 random = list(~1 | Title,
+                               ~1 | Species, # phylo effect 
+                               ~1 | Species2, # non-phylo effect 
+                               ~1 | Obs_ID), 
+                 data =  es,
+                 mods = ~ Comparison_type -1,
+                 test = "t",
+                 sparse = TRUE,
+                 R = list(Species = cor1))
+
+summary(mod.com)
+
+###publication bias####### only doing mean shifts bc thats what we extracted for 
+
+####Eggers regression - significant intercept - evidence of pub bias
+
+es$effectN <- (es$n_control * es$n_exp) / (es$n_control + es$n_exp)
+es$sqeffectN <- sqrt(es$effectN)
+
+mod.egg <- rma.mv(yi = yi, V = vcv,
+                  random = list(~1 | Title,
+                                ~1 | Species, # phylo effect 
+                                ~1 | Species2, # non-phylo effect 
+                                ~1 | Obs_ID), 
+                  data =  es,
+                  mods = ~ sqeffectN,
+                  test = "t",
+                  sparse = TRUE,
+                  R = list(Species = cor1))
+
+summary(mod.egg)
+
+#exploring pub bias 
+
+mod_simple <- rma(yi = yi, vi = vi, data = es)
+
+mod_simple
+tf <- trimfill(mod_simple)
+
+range(es$yi)
+range(sqrt(es$vi)) 
+
+par(mar = c(5, 5, 4, 2))  # bottom, left, top, right margins
+funnel(mod.egg)
+
+##no change with trim and fill. Likely means the funnel assymerty is due to heterogeneity rather than pub bias but we should report this in the manuscript.
+
+#Decline effect NEEDS COLLECTING
+
+mod.mad <- rma.mv(yi = yi, V = vcv,
+                          random = list(~1 | Title,
+                                        ~1 | Species, # phylo effect 
+                                        ~1 | Species2, # non-phylo effect 
+                                        ~1 | Obs_ID), 
+                          data =  es,
+                          mods = ~ year,
+                          test = "t",
+                          sparse = TRUE,
+                          R = list(Species = cor1))
 
 
+summary(mod_mad)
+
+###leave on out - NEEDs COLLECTING
+
+### >>>> leave-one-out analysis 
+
+es <- es %>%
+  mutate(leave_out = paste(Author, Year, sep = "_"))
+es$leave_out <- as.factor(es$leave_out)
+
+
+  LeaveOneOut_effectsize <- list()
+  for (i in 1:length(levels(es$leave_out))) {
+    temp_dat <- es %>%
+      dplyr::filter(leave_out != levels(es$leave_out)[i])
+    
+    VCV_leaveout <- vcalc(vi = temp_dat$vi_diff, cluster = temp_dat$Study_ID, obs = temp_dat$Obs_ID, rho = 0.5)
+    
+    LeaveOneOut_effectsize[[i]] <-  rma.mv(yi = yi, V = vcv,
+                                           random = list(~1 | Title,
+                                                         ~1 | Species, # phylo effect 
+                                                         ~1 | Species2, # non-phylo effect 
+                                                         ~1 | Obs_ID), 
+                                           mods = ~ year,
+                                           test = "t",
+                                           sparse = TRUE,
+                                           R = list(Species = cor1),
+                                           data = temp_dat[temp_dat$leave_out != levels(temp_dat$leave_out)[i], ])
+  }
+  
+  
+  # writing function for extracting est, ci.lb, and ci.ub from all models
+  est.func <- function(model) {
+    df <- data.frame(est = model$b, lower = model$ci.lb, upper = model$ci.ub)
+    return(df)
+  }
+  
+  # using dplyr to form data frame
+  MA_oneout <- lapply(LeaveOneOut_effectsize,function(x) est.func(x)) %>%
+    bind_rows %>%
+    mutate(left_out = levels(dat$leave_out))
+  
+  
+  # telling ggplot to stop reordering factors
+  MA_oneout$left_out <- as.factor(MA_oneout$left_out)
+  MA_oneout$left_out <- factor(MA_oneout$left_out, levels = MA_oneout$left_out)
+  
+  # saving the runs
+  saveRDS(here("R", "Outputs", "MA_oneout.RDS"))
+  
+
+# writing function for extracting est, ci.lb, and ci.ub from all models
+est.func <- function(model) {
+  df <- data.frame(est = model$b, lower = model$ci.lb, upper = model$ci.ub)
+  return(df)
+}
+
+# using dplyr to form data frame
+MA_oneout <- lapply(LeaveOneOut_effectsize,function(x) est.func(x)) %>%
+  bind_rows %>%
+  mutate(left_out = levels(dat$leave_out))
+
+
+# telling ggplot to stop reordering factors
+MA_oneout$left_out <- as.factor(MA_oneout$left_out)
+MA_oneout$left_out <- factor(MA_oneout$left_out, levels = MA_oneout$left_out)
+
+# plotting
+leaveoneout <- ggplot(MA_oneout) + geom_hline(yintercept = 0, lty = 2, lwd = 1) +
+  geom_hline(yintercept = mod1_diff$ci.lb, lty = 3, lwd = 0.75, colour = "black") +
+  geom_hline(yintercept = mod1_diff$b, lty = 1, lwd = 0.75, colour = "black") + 
+  geom_hline(yintercept = mod1_diff$ci.ub,
+             lty = 3, lwd = 0.75, colour = "black") + 
+  geom_pointrange(aes(x = left_out, y = est,
+                      ymin = lower, ymax = upper)) + 
+  xlab("Study left out") + 
+  ylab("Risk taking behaviour") +
+  coord_flip() + 
+  theme(panel.grid.minor = element_blank()) + theme_bw() + theme(panel.grid.major = element_blank()) +
+  theme(panel.grid.minor.x = element_blank()) + theme(axis.text.y = element_text(size = 6))
+
+leaveoneout
+
+
+
+###########################################
 ##############lnVR models##################
+###########################################
+
 
 # Calculate lnVR
 
@@ -395,4 +560,132 @@ mod.ln.cv <- rma.mv(yi = yi, V = vcv_cv,
                  R = list(Species = cor1))
 
 summary(mod.ln.cv)
+
+#CV adult vs juvenille###
+
+mod.aj.cv <- rma.mv(yi = yi, V = vcv_cv,
+                 random = list(~1 | Title,
+                               ~1 | Species, # phylo effect 
+                               ~1 | Species2, # non-phylo effect 
+                               ~1 | Obs_ID), 
+                 data =  cv,
+                 mods = ~ Adult -1,
+                 test = "t",
+                 sparse = TRUE,
+                 R = list(Species = cor1))
+
+summary(mod.aj.cv)
+
+#comp type###
+
+mod.com.cv <- rma.mv(yi = yi, V = vcv_cv,
+                  random = list(~1 | Title,
+                                ~1 | Species, # phylo effect 
+                                ~1 | Species2, # non-phylo effect 
+                                ~1 | Obs_ID), 
+                  data =  cv,
+                  mods = ~ Comparison_type -1,
+                  test = "t",
+                  sparse = TRUE,
+                  R = list(Species = cor1))
+
+summary(mod.com.cv)
+
+
+
+
+###END##### 
+
+#Scribles below 
+
+#time exposed### - not sure if this metric makes any sense nor how to test it in a meaningful way....
+
+# #filter out non numbers
+# unique(es$time_exposed_days)
+# es_time <- es %>% filter(time_exposed_days != "N/A" & time_exposed_days != "Max")
+# 
+# unique(es_time$time_exposed_days)
+# #convert time_exposed_days to numeric
+# 
+# es_time$time_exposed_days <- as.numeric(es_time$time_exposed_days)
+# 
+# str(es_time$time_exposed_days)
+# 
+# #log transform time_exposed_days
+# es_time$log_time_exposed_days <- log(es_time$time_exposed_days)
+# 
+# vcv_time <- vcalc(vi, cluster = Title, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
+#              data = es_time)
+# 
+# mod.time <- rma.mv(yi = yi, V = vcv_time,
+#                   random = list(~1 | Title,
+#                                 ~1 | Species, # phylo effect 
+#                                 ~1 | Species2, # non-phylo effect 
+#                                 ~1 | Obs_ID), 
+#                   data =  es_time,
+#                   mods = ~ log_time_exposed_days,
+#                   test = "t",
+#                   sparse = TRUE,
+#                   R = list(Species = cor1))
+# 
+# summary(mod.time)
+# 
+# #plot it
+# 
+# newdat_rat_time <- data.frame(time_exp = seq(min(es_time$log_time_exposed_days, na.rm = TRUE),
+#                                               max(es_time$log_time_exposed_days, na.rm = TRUE),
+#                                               length.out = 100))
+# 
+# X_rat_time <- model.matrix(~ time_exp, data = newdat_rat_time)[, -1, drop = FALSE]
+# 
+# time_rat_time <- predict(mod.time, newmods = X_rat_time)
+# 
+# plot_data_time <- cbind(newdat_rat_time, time_rat_time)
+# 
+# setDT(es_time)
+# es_time[, wi := 1/sqrt(vi)]
+# es_time[, pt_size := 2 + 7 * (wi-min(wi, na.rm = T)) / (max(wi, na.rm = T) - min(wi, na.rm = T))]
+# es_time
+# 
+# time_text <- tidy(mod.time)
+# time_text
+# 
+# bottom_margin <- margin(5, 5, 30, 5)
+# 
+# time_exp <- ggplot()+
+#   # now add the rest of the points:
+#   geom_jitter(data = es_time, 
+#               aes(x = log_time_exposed_days, size = pt_size, #ignore point size
+#                   y = yi),
+#               position = position_jitter(width = 0.01),
+#               inherit.aes = F,  alpha = 0.5, color = "#3d405bff")+
+#   geom_hline(yintercept = 0, lty = "dashed")+
+#   geom_ribbon(data = plot_data_time,
+#               aes(x = time_exp,
+#                   ymin = pi.lb, ymax = pi.ub),
+#               fill = "transparent", color = "#dad7cd",
+#               alpha = .3)+
+#   geom_ribbon(data = plot_data_time, 
+#               aes(x = time_exp,
+#                   ymin = ci.lb, ymax = ci.ub),
+#               alpha = .3)+
+#   geom_line(data = plot_data_time, 
+#             aes(x = time_exp,
+#                 y = pred),
+#             alpha = .8)+
+#   
+#   # coord_cartesian(ylim = c(-4, 4))+
+#   scale_size_identity()+
+#   theme_bw()+
+#   theme(
+#     plot.margin = bottom_margin)+
+#   xlab("Time exposed to predators (log)")+
+#   ylab("Risk taking behaviour (Hedge's g)")+
+#   theme(legend.position = "none",
+#         text = element_text(color = "black", family = "Helvetica"), axis.text = element_text(color = "black", family = "Helvetica"),
+#         panel.grid = element_blank(),
+#         panel.border = element_blank())
+# 
+# 
+# time_exp
 
