@@ -132,6 +132,16 @@ SE$SD_exp_trans <- se_to_sd(SE$SD_exp, SE$n_exp)
 
 data <- rbind(SD, CI, SE)
 
+# obs level random effect
+
+data$Obs_ID <- factor(1:nrow(data))
+
+# Study level random effect # using Study_ID for now but will extract extra data for first author/year later 
+
+data$Firstauthor_Year <- paste(data$First_author, data$Year, sep = "_")
+
+data$Study_ID <- factor(as.numeric(as.factor(data$Firstauthor_Year)))
+
 
 #################################################################################
 ############################ Hedges Effect Size ################################
@@ -155,29 +165,21 @@ es <- escalc(
 
 print(es) 
 
-# obs level random effect
 
-es$Obs_ID <- factor(1:nrow(es))
-
-# Study level random effect # using title for now but will extract extra data for first author/year later 
-
-# es$StudyID <- NULL
-# 
-# es$Study_ID <- factor(as.numeric(as.factor(es$Firstauthor_Year)))
 
 
 ################################## HEDges Models ##################################
 
 # Variance covariance matrix
 
-vcv <- vcalc(vi, cluster = Title, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
+vcv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
              data = es) 
 
 #Overall model - we need this model - important to overall result and for pub bias analysis
 
 
 mod.overall <- rma.mv(yi = yi, V = vcv,
-                             random = list(~1 | Title,
+                             random = list(~1 | Study_ID,
                                            ~1 | Species, # phylo effect 
                                            ~1 | Species2, # non-phylo effect 
                                            ~1 | Obs_ID), 
@@ -192,7 +194,7 @@ mod.overall <- rma.mv(yi = yi, V = vcv,
 
 I2 = round(i2_ml(mod.overall), 2)
 
-overall <- orchard_plot(mod.overall, xlab = "Change in risk-taking (Hedge's g)", group = "Title",
+overall <- orchard_plot(mod.overall, xlab = "Change in risk-taking (Hedge's g)", group = "Study_ID",
                         angle = 0)
 overall
 
@@ -207,7 +209,7 @@ round(i2_ml(mod.overall), 2)
 unique(data$Behaviour_type)
 
 mod.behav <- rma.mv(yi = yi, V = vcv,
-                      random = list(~1 | Title,
+                      random = list(~1 | Study_ID,
                                     ~1 | Species, # phylo effect 
                                     ~1 | Species2, # non-phylo effect 
                                     ~1 | Obs_ID), 
@@ -219,14 +221,27 @@ mod.behav <- rma.mv(yi = yi, V = vcv,
 
 summary(mod.behav)
 
+#plotting behaviour type with orchard
+behav <- orchard_plot(mod.behav, xlab = "Change in risk-taking (Hedge's g)", group = "Study_ID",
+                        angle = 0)
+
+behav
+
+
+
 #Sex##
 
-mod.sex <- rma.mv(yi = yi, V = vcv,
-                    random = list(~1 | Title,
+ses <- filter(es, Sex != "N/A") #& Sex != "Mixed")
+
+vcv_ses <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
+             data = ses)
+
+mod.sex <- rma.mv(yi = yi, V = vcv_ses,
+                    random = list(~1 | Study_ID,
                                   ~1 | Species, # phylo effect 
                                   ~1 | Species2, # non-phylo effect 
                                   ~1 | Obs_ID), 
-                    data =  es,
+                    data =  ses,
                     mods = ~ Sex -1,
                     test = "t",
                     sparse = TRUE,
@@ -238,7 +253,7 @@ summary(mod.sex)
 #Pred_pressure#######
 
 mod.pp <- rma.mv(yi = yi, V = vcv,
-                  random = list(~1 | Title,
+                  random = list(~1 | Study_ID,
                                 ~1 | Species, # phylo effect 
                                 ~1 | Species2, # non-phylo effect 
                                 ~1 | Obs_ID), 
@@ -260,7 +275,7 @@ str(es)
 
 
 mod.rp <- rma.mv(yi = yi, V = vcv,
-                 random = list(~1 | Title,
+                 random = list(~1 | Study_ID,
                                ~1 | Species, # phylo effect 
                                ~1 | Species2, # non-phylo effect 
                                ~1 | Obs_ID), 
@@ -275,7 +290,7 @@ summary(mod.rp)
 #low vs no predator###
 
 mod.ln <- rma.mv(yi = yi, V = vcv,
-                 random = list(~1 | Title,
+                 random = list(~1 | Study_ID,
                                ~1 | Species, # phylo effect 
                                ~1 | Species2, # non-phylo effect 
                                ~1 | Obs_ID), 
@@ -290,7 +305,7 @@ summary(mod.ln)
 #adult vs juvenille###
 
 mod.aj <- rma.mv(yi = yi, V = vcv,
-                 random = list(~1 | Title,
+                 random = list(~1 | Study_ID,
                                ~1 | Species, # phylo effect 
                                ~1 | Species2, # non-phylo effect 
                                ~1 | Obs_ID), 
@@ -305,7 +320,7 @@ summary(mod.aj)
 #comp type###
 
 mod.com <- rma.mv(yi = yi, V = vcv,
-                 random = list(~1 | Title,
+                 random = list(~1 | Study_ID,
                                ~1 | Species, # phylo effect 
                                ~1 | Species2, # non-phylo effect 
                                ~1 | Obs_ID), 
@@ -319,7 +334,18 @@ summary(mod.com)
 
 ###Class##########
 
+mod.class <- rma.mv(yi = yi, V = vcv,
+                  random = list(~1 | Study_ID,
+                                ~1 | Species, # phylo effect 
+                                ~1 | Species2, # non-phylo effect 
+                                ~1 | Obs_ID), 
+                  data =  es,
+                  mods = ~ Class -1,
+                  test = "t",
+                  sparse = TRUE,
+                  R = list(Species = cor1))
 
+summary(mod.class)
 
 
 
@@ -332,7 +358,7 @@ es$effectN <- (es$n_control * es$n_exp) / (es$n_control + es$n_exp)
 es$sqeffectN <- sqrt(es$effectN)
 
 mod.egg <- rma.mv(yi = yi, V = vcv,
-                  random = list(~1 | Title,
+                  random = list(~1 | Study_ID,
                                 ~1 | Species, # phylo effect 
                                 ~1 | Species2, # non-phylo effect 
                                 ~1 | Obs_ID), 
@@ -362,7 +388,7 @@ funnel(mod.egg)
 #Decline effect NEEDS COLLECTING
 
 mod.mad <- rma.mv(yi = yi, V = vcv,
-                          random = list(~1 | Title,
+                          random = list(~1 | Study_ID,
                                         ~1 | Species, # phylo effect 
                                         ~1 | Species2, # non-phylo effect 
                                         ~1 | Obs_ID), 
@@ -392,7 +418,7 @@ es$leave_out <- as.factor(es$leave_out)
     VCV_leaveout <- vcalc(vi = temp_dat$vi_diff, cluster = temp_dat$Study_ID, obs = temp_dat$Obs_ID, rho = 0.5)
     
     LeaveOneOut_effectsize[[i]] <-  rma.mv(yi = yi, V = vcv,
-                                           random = list(~1 | Title,
+                                           random = list(~1 | Study_ID,
                                                          ~1 | Species, # phylo effect 
                                                          ~1 | Species2, # non-phylo effect 
                                                          ~1 | Obs_ID), 
@@ -478,12 +504,12 @@ cv <- escalc(
 
 cv$Obs_ID <- factor(1:nrow(cv))
 
-vcv_cv <- vcalc(vi, cluster = Title, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
+vcv_cv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
              data = es) 
 
 
 mod.overall_cv <- rma.mv(yi = yi, V = vcv_cv,
-                      random = list(~1 | Title,
+                      random = list(~1 | Study_ID,
                                     ~1 | Species, # phylo effect 
                                     ~1 | Species2, # non-phylo effect 
                                     ~1 | Obs_ID), 
@@ -498,14 +524,14 @@ summary(mod.overall_cv)
 
 I2 = round(i2_ml(mod.overall_cv), 2)
 
-overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking (log transformed variability ratio)", group = "Title",
+overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking (log transformed variability ratio)", group = "Study_ID",
                         angle = 0)
 overall_cv
 
 #CV_ behaviour type####
 
 mod.behav_cv <- rma.mv(yi = yi, V = vcv_cv,
-                    random = list(~1 | Title,
+                    random = list(~1 | Study_ID,
                                   ~1 | Species, # phylo effect 
                                   ~1 | Species2, # non-phylo effect 
                                   ~1 | Obs_ID), 
@@ -521,7 +547,7 @@ summary(mod.behav_cv)
 
 
 mod.sex.cv <- rma.mv(yi = yi, V = vcv_cv,
-                  random = list(~1 | Title,
+                  random = list(~1 | Study_ID,
                                 ~1 | Species, # phylo effect 
                                 ~1 | Species2, # non-phylo effect 
                                 ~1 | Obs_ID), 
@@ -541,7 +567,7 @@ str(cv)
 
 
 mod.rp.cv <- rma.mv(yi = yi, V = vcv_cv,
-                 random = list(~1 | Title,
+                 random = list(~1 | Study_ID,
                                ~1 | Species, # phylo effect 
                                ~1 | Species2, # non-phylo effect 
                                ~1 | Obs_ID), 
@@ -556,7 +582,7 @@ summary(mod.rp.cv)
 #CV low vs no predator###
 
 mod.ln.cv <- rma.mv(yi = yi, V = vcv_cv,
-                 random = list(~1 | Title,
+                 random = list(~1 | Study_ID,
                                ~1 | Species, # phylo effect 
                                ~1 | Species2, # non-phylo effect 
                                ~1 | Obs_ID), 
@@ -571,7 +597,7 @@ summary(mod.ln.cv)
 #CV adult vs juvenille###
 
 mod.aj.cv <- rma.mv(yi = yi, V = vcv_cv,
-                 random = list(~1 | Title,
+                 random = list(~1 | Study_ID,
                                ~1 | Species, # phylo effect 
                                ~1 | Species2, # non-phylo effect 
                                ~1 | Obs_ID), 
@@ -586,7 +612,7 @@ summary(mod.aj.cv)
 #comp type###
 
 mod.com.cv <- rma.mv(yi = yi, V = vcv_cv,
-                  random = list(~1 | Title,
+                  random = list(~1 | Study_ID,
                                 ~1 | Species, # phylo effect 
                                 ~1 | Species2, # non-phylo effect 
                                 ~1 | Obs_ID), 
@@ -621,11 +647,11 @@ summary(mod.com.cv)
 # #log transform time_exposed_days
 # es_time$log_time_exposed_days <- log(es_time$time_exposed_days)
 # 
-# vcv_time <- vcalc(vi, cluster = Title, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
+# vcv_time <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
 #              data = es_time)
 # 
 # mod.time <- rma.mv(yi = yi, V = vcv_time,
-#                   random = list(~1 | Title,
+#                   random = list(~1 | Study_ID,
 #                                 ~1 | Species, # phylo effect 
 #                                 ~1 | Species2, # non-phylo effect 
 #                                 ~1 | Obs_ID), 
