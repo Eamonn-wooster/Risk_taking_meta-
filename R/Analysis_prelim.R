@@ -222,7 +222,7 @@ mod.behav <- rma.mv(yi = yi, V = vcv,
 summary(mod.behav)
 
 #plotting behaviour type with orchard
-behav <- orchard_plot(mod.behav, xlab = "Change in risk-taking (Hedge's g)", group = "Study_ID",
+behav <- orchard_plot(mod.behav, mod = "Behaviour_type", xlab = "Change in risk-taking (Hedge's g)", group = "Study_ID",
                         angle = 0)
 
 behav
@@ -231,7 +231,7 @@ behav
 
 #Sex##
 
-ses <- filter(es, Sex != "N/A") #& Sex != "Mixed")
+ses <- filter(es, Sex != "N/A" & Sex != "Mixed")
 
 vcv_ses <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
              data = ses)
@@ -333,6 +333,8 @@ summary(mod.com)
 
 ###Class##########
 
+unique(es$Class)
+
 mod.class <- rma.mv(yi = yi, V = vcv,
                   random = list(~1 | Study_ID,
                                 ~1 | Species, # phylo effect 
@@ -346,7 +348,10 @@ mod.class <- rma.mv(yi = yi, V = vcv,
 
 summary(mod.class)
 
+class <- orchard_plot(mod.class, mod = "Class", xlab = "Change in risk-taking (Hedge's g)", group = "Study_ID",
+                      angle = 0)
 
+class
 
 
 ###publication bias####### only doing mean shifts bc thats what we extracted for 
@@ -384,7 +389,7 @@ funnel(mod.egg)
 
 ##no change with trim and fill. Likely means the funnel assymerty is due to heterogeneity rather than pub bias but we should report this in the manuscript.
 
-#Decline effect NEEDS COLLECTING
+#Decline effect 
 
 mod.mad <- rma.mv(yi = yi, V = vcv,
                           random = list(~1 | Study_ID,
@@ -392,94 +397,15 @@ mod.mad <- rma.mv(yi = yi, V = vcv,
                                         ~1 | Species2, # non-phylo effect 
                                         ~1 | Obs_ID), 
                           data =  es,
-                          mods = ~ year,
+                          mods = ~ Year,
                           test = "t",
                           sparse = TRUE,
                           R = list(Species = cor1))
 
 
-summary(mod_mad)
+summary(mod.mad) # no effect
 
-###leave on out - NEEDs COLLECTING
-
-### >>>> leave-one-out analysis 
-
-es <- es %>%
-  mutate(leave_out = paste(Author, Year, sep = "_"))
-es$leave_out <- as.factor(es$leave_out)
-
-
-  LeaveOneOut_effectsize <- list()
-  for (i in 1:length(levels(es$leave_out))) {
-    temp_dat <- es %>%
-      dplyr::filter(leave_out != levels(es$leave_out)[i])
-    
-    VCV_leaveout <- vcalc(vi = temp_dat$vi_diff, cluster = temp_dat$Study_ID, obs = temp_dat$Obs_ID, rho = 0.5)
-    
-    LeaveOneOut_effectsize[[i]] <-  rma.mv(yi = yi, V = vcv,
-                                           random = list(~1 | Study_ID,
-                                                         ~1 | Species, # phylo effect 
-                                                         ~1 | Species2, # non-phylo effect 
-                                                         ~1 | Obs_ID), 
-                                           mods = ~ year,
-                                           test = "t",
-                                           sparse = TRUE,
-                                           R = list(Species = cor1),
-                                           data = temp_dat[temp_dat$leave_out != levels(temp_dat$leave_out)[i], ])
-  }
-  
-  
-  # writing function for extracting est, ci.lb, and ci.ub from all models
-  est.func <- function(model) {
-    df <- data.frame(est = model$b, lower = model$ci.lb, upper = model$ci.ub)
-    return(df)
-  }
-  
-  # using dplyr to form data frame
-  MA_oneout <- lapply(LeaveOneOut_effectsize,function(x) est.func(x)) %>%
-    bind_rows %>%
-    mutate(left_out = levels(dat$leave_out))
-  
-  
-  # telling ggplot to stop reordering factors
-  MA_oneout$left_out <- as.factor(MA_oneout$left_out)
-  MA_oneout$left_out <- factor(MA_oneout$left_out, levels = MA_oneout$left_out)
-  
-  # saving the runs
-  saveRDS(here("R", "Outputs", "MA_oneout.RDS"))
-  
-
-# writing function for extracting est, ci.lb, and ci.ub from all models
-est.func <- function(model) {
-  df <- data.frame(est = model$b, lower = model$ci.lb, upper = model$ci.ub)
-  return(df)
-}
-
-# using dplyr to form data frame
-MA_oneout <- lapply(LeaveOneOut_effectsize,function(x) est.func(x)) %>%
-  bind_rows %>%
-  mutate(left_out = levels(dat$leave_out))
-
-
-# telling ggplot to stop reordering factors
-MA_oneout$left_out <- as.factor(MA_oneout$left_out)
-MA_oneout$left_out <- factor(MA_oneout$left_out, levels = MA_oneout$left_out)
-
-# plotting
-leaveoneout <- ggplot(MA_oneout) + geom_hline(yintercept = 0, lty = 2, lwd = 1) +
-  geom_hline(yintercept = mod1_diff$ci.lb, lty = 3, lwd = 0.75, colour = "black") +
-  geom_hline(yintercept = mod1_diff$b, lty = 1, lwd = 0.75, colour = "black") + 
-  geom_hline(yintercept = mod1_diff$ci.ub,
-             lty = 3, lwd = 0.75, colour = "black") + 
-  geom_pointrange(aes(x = left_out, y = est,
-                      ymin = lower, ymax = upper)) + 
-  xlab("Study left out") + 
-  ylab("Risk taking behaviour") +
-  coord_flip() + 
-  theme(panel.grid.minor = element_blank()) + theme_bw() + theme(panel.grid.major = element_blank()) +
-  theme(panel.grid.minor.x = element_blank()) + theme(axis.text.y = element_text(size = 6))
-
-leaveoneout
+# DO LEAVE ONE OUT HERE #######
 
 
 
@@ -544,19 +470,24 @@ summary(mod.behav_cv)
 
 #CV_ Sex##
 
+ses_cv <- filter(cv, Sex != "N/A" & Sex != "Mixed")
 
-mod.sex.cv <- rma.mv(yi = yi, V = vcv_cv,
+vcv_ses_cv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
+                 data = ses_cv)
+
+
+mod.sex.cv <- rma.mv(yi = yi, V = vcv_ses_cv,
                   random = list(~1 | Study_ID,
                                 ~1 | Species, # phylo effect 
                                 ~1 | Species2, # non-phylo effect 
                                 ~1 | Obs_ID), 
-                  data =  cv,
+                  data =  ses_cv,
                   mods = ~ Sex -1,
                   test = "t",
                   sparse = TRUE,
                   R = list(Species = cor1))
 
-summary(mod.sex)
+summary(mod.sex.cv) #mean-variance relationship in males only
 
 #CV_real vs sim#######
 
