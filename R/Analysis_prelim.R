@@ -8,6 +8,8 @@
 
 # Loading packages 
 
+rm(list = ls())
+
 pacman::p_load(devtools, 
                tidyverse, 
                metafor, 
