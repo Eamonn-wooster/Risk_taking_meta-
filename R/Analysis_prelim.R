@@ -268,7 +268,6 @@ summary(mod.pp)
 
 #real vs simulated pred#######
 
-#convert es$real_predator to a factor
 es$Real_predator <- as.factor(es$Real_predator)
 
 str(es)
