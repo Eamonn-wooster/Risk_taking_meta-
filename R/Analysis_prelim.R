@@ -31,7 +31,8 @@ pacman::p_load(devtools,
                matrixcalc,# added
                ape, # added
                multcomp,
-               taxize
+               taxize,
+               cowplot
            #added
                # miWQS #added
 ) 
@@ -194,8 +195,10 @@ mod.overall <- rma.mv(yi = yi, V = vcv,
 
 I2 = round(i2_ml(mod.overall), 2)
 
-overall <- orchard_plot(mod.overall, xlab = "Change in risk-taking (Hedge's g)", group = "Study_ID",
-                        angle = 0)
+overall <- orchard_plot(mod.overall, xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID",
+                        angle = 0,col = "#eea196")
+overall <- overall + scale_fill_manual(values = "#eea196") + scale_color_manual(values = "#eea196") 
+
 overall
 
 ggsave(here("Outputs", "Figures", "Overall.pdf"), width = 6, height = 4)
@@ -222,7 +225,7 @@ mod.behav <- rma.mv(yi = yi, V = vcv,
 summary(mod.behav)
 
 #plotting behaviour type with orchard
-behav <- orchard_plot(mod.behav, mod = "Behaviour_type", xlab = "Change in risk-taking (Hedge's g)", group = "Study_ID",
+behav <- orchard_plot(mod.behav, mod = "Behaviour_type", xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID",
                         angle = 0)
 
 behav
@@ -348,7 +351,7 @@ mod.class <- rma.mv(yi = yi, V = vcv,
 
 summary(mod.class)
 
-class <- orchard_plot(mod.class, mod = "Class", xlab = "Change in risk-taking (Hedge's g)", group = "Study_ID",
+class <- orchard_plot(mod.class, mod = "Class", xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID",
                       angle = 0)
 
 class
@@ -449,8 +452,10 @@ summary(mod.overall_cv)
 
 I2 = round(i2_ml(mod.overall_cv), 2)
 
-overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking (log transformed variability ratio)", group = "Study_ID",
+overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking (lnVR)", group = "Study_ID",
                         angle = 0)
+overall_cv <- overall_cv + scale_fill_manual(values = "#989aae") + scale_color_manual(values = "#989aae") 
+
 overall_cv
 
 #CV_ behaviour type####
@@ -556,6 +561,15 @@ summary(mod.com.cv)
 
 
 
+###figures #######
+
+#put overall and overall_cv together using cowplot
+
+
+
+Fig1 <- plot_grid(overall, overall_cv, labels = c("A", "B"), label_size = 12)
+
+Fig1
 
 ###END##### 
 
