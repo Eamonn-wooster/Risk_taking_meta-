@@ -358,9 +358,11 @@ mod.class <- rma.mv(yi = yi, V = vcv,
 summary(mod.class)
 
 class <- orchard_plot(mod.class, mod = "Class", xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID",
-                      angle = 0)
+                      angle = 0) + 
+  scale_fill_manual(values = b_colours) +
+  scale_colour_manual(values = b_colours)
 
-class
+class   
 
 
 ###publication bias####### only doing mean shifts bc thats what we extracted for 
