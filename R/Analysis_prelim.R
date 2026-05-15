@@ -225,8 +225,14 @@ mod.behav <- rma.mv(yi = yi, V = vcv,
 summary(mod.behav)
 
 #plotting behaviour type with orchard
-behav <- orchard_plot(mod.behav, mod = "Behaviour_type", xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID",
-                        angle = 0)
+b_colours <- c("#eea196", "#a8c5da", "#b5d5a8", "#f5c97a", "#c3a8d1", "#f0a8c0", "#a8d4d0")
+
+behav <- orchard_plot(mod.behav, mod = "Behaviour_type", 
+                      xlab = "Difference in risk-taking behaviour (Hedge's g)", 
+                      group = "Study_ID",
+                      angle = 0) +
+  scale_fill_manual(values = b_colours) +
+  scale_colour_manual(values = b_colours)
 
 behav
 
