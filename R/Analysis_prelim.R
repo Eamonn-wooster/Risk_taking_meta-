@@ -144,9 +144,9 @@ data$Firstauthor_Year <- paste(data$First_author, data$Year, sep = "_")
 data$Study_ID <- factor(as.numeric(as.factor(data$Firstauthor_Year)))
 
 
-#################################################################################
+
 ############################ Hedges Effect Size ################################
-#################################################################################
+
 
 # Calculate Hedges' g
 
@@ -169,7 +169,7 @@ print(es)
 
 
 
-################################## HEDges Models ##################################
+################################## Hedges Models ##################################
 
 # Variance covariance matrix
 
@@ -238,9 +238,9 @@ behav
 
 
 
-#Sex##
+#Sex#####
 
-ses <- filter(es, Sex != "N/A" & Sex != "Mixed")
+ses <- filter(es, Sex != "N/A")
 
 vcv_ses <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
              data = ses)
@@ -258,6 +258,16 @@ mod.sex <- rma.mv(yi = yi, V = vcv_ses,
 
 summary(mod.sex)
 
+
+scolour <- c("#eea196","#eea196","#eea196")
+
+s <- orchard_plot(mod.sex, xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID", mod = "Sex",
+                        angle = 0) +
+  scale_fill_manual(values = scolour) +
+  scale_colour_manual(values = scolour)
+
+
+s
 
 #Pred_pressure#######
 
@@ -295,7 +305,7 @@ mod.rp <- rma.mv(yi = yi, V = vcv,
 
 summary(mod.rp)
 
-#low vs no predator###
+###low vs no predator######
 
 mod.ln <- rma.mv(yi = yi, V = vcv,
                  random = list(~1 | Study_ID,
@@ -310,7 +320,10 @@ mod.ln <- rma.mv(yi = yi, V = vcv,
 
 summary(mod.ln)
 
-#adult vs juvenille###
+###adult vs juvenille#####
+
+es$Adult <- factor(es$Adult, 
+                              levels = c("Adult", "Juvenille", "Both"))
 
 mod.aj <- rma.mv(yi = yi, V = vcv,
                  random = list(~1 | Study_ID,
@@ -324,6 +337,13 @@ mod.aj <- rma.mv(yi = yi, V = vcv,
                  R = list(Species = cor1))
 
 summary(mod.aj)
+
+aj <- orchard_plot(mod.aj, xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID", mod = "Adult",
+                  angle = 0) +
+  scale_fill_manual(values = scolour) +
+  scale_colour_manual(values = scolour)
+
+aj
 
 #comp type###
 
@@ -481,9 +501,9 @@ mod.behav_cv <- rma.mv(yi = yi, V = vcv_cv,
 
 summary(mod.behav_cv)
 
-#CV_ Sex##
+###CV_ Sex######
 
-ses_cv <- filter(cv, Sex != "N/A" & Sex != "Mixed")
+ses_cv <- filter(cv, Sex != "N/A")
 
 vcv_ses_cv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
                  data = ses_cv)
@@ -500,9 +520,19 @@ mod.sex.cv <- rma.mv(yi = yi, V = vcv_ses_cv,
                   sparse = TRUE,
                   R = list(Species = cor1))
 
-summary(mod.sex.cv) #mean-variance relationship in males only
+summary(mod.sex.cv) 
 
-#CV_real vs sim#######
+cvcolour <- c("#989aae","#989aae","#989aae")
+
+s.cv <- orchard_plot(mod.sex.cv, xlab = "Heterogeneity in risk-taking (Hedge's g)", group = "Study_ID", mod = "Sex",
+                  angle = 0) +
+  scale_fill_manual(values = cvcolour) +
+  scale_colour_manual(values = cvcolour)
+
+
+s.cv
+
+###CV_real vs sim#######
 
 cv$Real_predator <- as.factor(cv$Real_predator)
 
@@ -522,7 +552,7 @@ mod.rp.cv <- rma.mv(yi = yi, V = vcv_cv,
 
 summary(mod.rp.cv)
 
-#CV low vs no predator###
+###CV low vs no predator#####
 
 mod.ln.cv <- rma.mv(yi = yi, V = vcv_cv,
                  random = list(~1 | Study_ID,
@@ -537,7 +567,10 @@ mod.ln.cv <- rma.mv(yi = yi, V = vcv_cv,
 
 summary(mod.ln.cv)
 
-#CV adult vs juvenille###
+###CV adult vs juvenille######
+
+cv$Adult <- factor(cv$Adult, 
+                   levels = c("Adult", "Juvenille", "Both"))
 
 mod.aj.cv <- rma.mv(yi = yi, V = vcv_cv,
                  random = list(~1 | Study_ID,
@@ -552,7 +585,15 @@ mod.aj.cv <- rma.mv(yi = yi, V = vcv_cv,
 
 summary(mod.aj.cv)
 
-#comp type###
+aj.cv <- orchard_plot(mod.aj.cv, xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID", mod = "Adult",
+                   angle = 0) +
+  scale_fill_manual(values = cvcolour) +
+  scale_colour_manual(values = cvcolour)
+
+aj.cv
+
+
+###comp type#######
 
 mod.com.cv <- rma.mv(yi = yi, V = vcv_cv,
                   random = list(~1 | Study_ID,
@@ -567,6 +608,20 @@ mod.com.cv <- rma.mv(yi = yi, V = vcv_cv,
 
 summary(mod.com.cv)
 
+###class######
+
+mod.class.cv <- rma.mv(yi = yi, V = vcv_cv,
+                     random = list(~1 | Study_ID,
+                                   ~1 | Species, # phylo effect 
+                                   ~1 | Species2, # non-phylo effect 
+                                   ~1 | Obs_ID), 
+                     data =  cv,
+                     mods = ~ Class -1,
+                     test = "t",
+                     sparse = TRUE,
+                     R = list(Species = cor1))
+
+summary(mod.class.cv)
 
 
 ###figures #######
@@ -578,6 +633,10 @@ summary(mod.com.cv)
 Fig1 <- plot_grid(overall, overall_cv, labels = c("A", "B"), label_size = 12)
 
 Fig1
+
+Fig4 <- plot_grid(s, s.cv, aj,  aj.cv, labels = c("A", "B", "C", "D"), label_size = 12)
+
+Fig4
 
 ###END##### 
 
