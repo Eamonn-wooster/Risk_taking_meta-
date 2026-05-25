@@ -2,9 +2,9 @@
 
 
 
-#################################################################################
+
 ######################### Set Up & Reading in Data ##############################
-#################################################################################
+
 
 # Loading packages 
 
@@ -75,9 +75,9 @@ setdiff(tree1$tip.label, dat$Species)
 
 dat$Species2 <- dat$Species
 
-#################################################################################
+
 ######################### Converting Error ######################################
-#################################################################################
+
 
 ### functions for converting error ------
 
@@ -195,6 +195,8 @@ mod.overall <- rma.mv(yi = yi, V = vcv,
 
 I2 = round(i2_ml(mod.overall), 2)
 
+I2
+
 overall <- orchard_plot(mod.overall, xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID",
                         angle = 0,col = "#eea196")
 overall <- overall + scale_fill_manual(values = "#eea196") + scale_color_manual(values = "#eea196") 
@@ -223,6 +225,7 @@ mod.behav <- rma.mv(yi = yi, V = vcv,
                       R = list(Species = cor1))
 
 summary(mod.behav)
+
 
 #plotting behaviour type with orchard
 b_colours <- c("#eea196", "#a8c5da", "#b5d5a8", "#f5c97a", "#c3a8d1", "#f0a8c0", "#a8d4d0")
@@ -305,6 +308,8 @@ mod.rp <- rma.mv(yi = yi, V = vcv,
 
 summary(mod.rp)
 
+anova(mod.rp, L = c(1, -1))
+
 ###low vs no predator######
 
 mod.ln <- rma.mv(yi = yi, V = vcv,
@@ -345,7 +350,7 @@ aj <- orchard_plot(mod.aj, xlab = "Difference in risk-taking (Hedge's g)", group
 
 aj
 
-#comp type###
+###comp type######
 
 mod.com <- rma.mv(yi = yi, V = vcv,
                  random = list(~1 | Study_ID,
@@ -385,7 +390,7 @@ class <- orchard_plot(mod.class, mod = "Class", xlab = "Difference in risk-takin
 class   
 
 
-###publication bias####### only doing mean shifts bc thats what we extracted for 
+###Publication bias####### 
 
 ####Eggers regression - significant intercept - evidence of pub bias
 
@@ -420,7 +425,7 @@ funnel(mod.egg)
 
 ##no change with trim and fill. Likely means the funnel assymerty is due to heterogeneity rather than pub bias but we should report this in the manuscript.
 
-#Decline effect 
+###Decline effect #####
 
 mod.mad <- rma.mv(yi = yi, V = vcv,
                           random = list(~1 | Study_ID,
@@ -436,13 +441,76 @@ mod.mad <- rma.mv(yi = yi, V = vcv,
 
 summary(mod.mad) # no effect
 
-# DO LEAVE ONE OUT HERE #######
+###Leave on out####
 
+dat <- es %>%
+  mutate(leave_out = paste(First_author, Year, sep = "_"))
+dat$leave_out <- as.factor(dat$leave_out)
 
+rerun <- F
+if(rerun){
+  LeaveOneOut_effectsize <- list()
+  for (i in 1:length(levels(dat$leave_out))) {
+    temp_dat <- dat %>%
+      dplyr::filter(leave_out != levels(dat$leave_out)[i])
+    
+    VCV_leaveout <- vcalc(vi = temp_dat$vi, cluster = temp_dat$Study_ID, obs = temp_dat$Obs_ID, rho = 0.5)
+    
+    LeaveOneOut_effectsize[[i]] <- rma.mv(yi = yi,
+                                          V = VCV_leaveout,
+                                          random = list(~1 | Study_ID,
+                                                        ~1 | Species,   # phylo effect
+                                                        ~1 | Species2,  # non-phylo effect
+                                                        ~1 | Obs_ID),
+                                          R = list(Species = cor1),
+                                          test = "t",
+                                          method = "REML",
+                                          sparse = TRUE,
+                                          data = temp_dat)
+  }
+  
+  # function for extracting est, ci.lb, and ci.ub from all models
+  est.func <- function(model) {
+    df <- data.frame(est = model$b, lower = model$ci.lb, upper = model$ci.ub)
+    return(df)
+  }
+  
+  # form data frame
+  MA_oneout <- lapply(LeaveOneOut_effectsize, function(x) est.func(x)) %>%
+    bind_rows() %>%
+    mutate(left_out = levels(dat$leave_out))
+  
+  # preserve factor order for ggplot
+  MA_oneout$left_out <- factor(MA_oneout$left_out, levels = MA_oneout$left_out)
+  
+  # save the runs
+  saveRDS(MA_oneout, here("R", "MA_oneout.RDS"))
+  
+} else {
+  MA_oneout <- readRDS(here("R", "MA_oneout.RDS"))
+}
 
-###########################################
+# plotting
+leaveoneout <- ggplot(MA_oneout) +
+  geom_hline(yintercept = 0, lty = 2, lwd = 1) +
+  geom_hline(yintercept = mod.overall$ci.lb, lty = 3, lwd = 0.75, colour = "black") +
+  geom_hline(yintercept = mod.overall$b,     lty = 1, lwd = 0.75, colour = "black") +
+  geom_hline(yintercept = mod.overall$ci.ub, lty = 3, lwd = 0.75, colour = "black") +
+  geom_pointrange(aes(x = left_out, y = est, ymin = lower, ymax = upper)) +
+  xlab("Study left out") +
+  ylab("Hedge' g") +
+  coord_flip() +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text.y = element_text(size = 6)
+  )
+
+leaveoneout
+
 ##############lnVR models##################
-###########################################
+
 
 
 # Calculate lnVR
@@ -478,7 +546,6 @@ mod.overall_cv <- rma.mv(yi = yi, V = vcv_cv,
 summary(mod.overall_cv)
 
 
-I2 = round(i2_ml(mod.overall_cv), 2)
 
 overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking (lnVR)", group = "Study_ID",
                         angle = 0)
@@ -607,7 +674,7 @@ mod.com.cv <- rma.mv(yi = yi, V = vcv_cv,
                   R = list(Species = cor1))
 
 summary(mod.com.cv)
-
+z
 ###class######
 
 mod.class.cv <- rma.mv(yi = yi, V = vcv_cv,
@@ -623,6 +690,21 @@ mod.class.cv <- rma.mv(yi = yi, V = vcv_cv,
 
 summary(mod.class.cv)
 
+###predator pressure.cv######
+mod.pp.cv <- rma.mv(yi = yi, V = vcv_cv,
+                       random = list(~1 | Study_ID,
+                                     ~1 | Species, # phylo effect 
+                                     ~1 | Species2, # non-phylo effect 
+                                     ~1 | Obs_ID), 
+                       data =  cv,
+                       mods = ~ Predation_pressure -1,
+                       test = "t",
+                       sparse = TRUE,
+                       R = list(Species = cor1))
+
+summary(mod.pp.cv)
+
+
 
 ###figures #######
 
@@ -637,6 +719,58 @@ Fig1
 Fig4 <- plot_grid(s, s.cv, aj,  aj.cv, labels = c("A", "B", "C", "D"), label_size = 12)
 
 Fig4
+
+
+###Tables#######
+
+# >>> Model lists --------------------------------------------------------
+#Hedges table 
+mod1 <- coef(summary(mod.overall))
+
+mod2 <- coef(summary(mod.behav)) 
+
+mod3 <- coef(summary(mod.sex))
+
+mod4 <- coef(summary(mod.class))
+
+mod5 <- coef(summary(mod.pp))
+
+mod6 <- coef(summary(mod.ln))
+
+mod7 <- coef(summary(mod.aj))
+
+mod8 <- coef(summary(mod.rp))
+
+
+table1 <- rbind(mod1, mod2, mod3, mod4, mod5, mod6, mod7)
+
+table1$term <- rownames(table1)
+
+#CV table
+
+
+mod1.cv <- coef(summary(mod.overall_cv))
+
+mod2.cv <- coef(summary(mod.behav_cv)) 
+
+mod3.cv <- coef(summary(mod.sex.cv))
+
+mod4.cv <- coef(summary(mod.class.cv))
+
+mod5.cv <- coef(summary(mod.rp.cv))
+
+mod6.cv <- coef(summary(mod.ln.cv))
+
+mod7.cv <- coef(summary(mod.aj.cv))
+
+
+table2 <- rbind(mod1.cv, mod2.cv, mod3.cv, mod4.cv, mod5.cv, mod6.cv, mod7.cv)
+
+table2$term <- rownames(table2)
+
+write.csv(table1, "Figures/Sup_table1.csv")
+
+write.csv(table2, "Figures/Sup_table2.csv")
 
 ###END##### 
 
