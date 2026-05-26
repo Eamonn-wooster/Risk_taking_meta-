@@ -7374,8 +7374,8 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:export-bgcolor="#ffffffff"
      inkscape:zoom="2.1435778"
-     inkscape:cx="191.03575"
-     inkscape:cy="463.71071"
+     inkscape:cx="540.91809"
+     inkscape:cy="754.81282"
      inkscape:window-width="1920"
      inkscape:window-height="1027"
      inkscape:window-x="1512"
@@ -13570,25 +13570,35 @@
     <text
        xml:space="preserve"
        style="font-size:10.6667px;line-height:1.25;font-family:Helvetica;-inkscape-font-specification:Helvetica;text-align:center;word-spacing:0px;text-anchor:middle;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
-       x="285.96774"
-       y="700.1756"
+       x="223.96774"
+       y="686.1756"
        id="text3616-4-6"><tspan
          sodipodi:role="line"
          id="tspan3614-0-9"
-         x="285.96774"
-         y="700.1756"
-         style="font-size:10.6667px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616">Predation makes prey risky</tspan></text>
+         x="223.96774"
+         y="686.1756"
+         style="font-size:10.6667px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616">Prey more risky</tspan><tspan
+         sodipodi:role="line"
+         x="223.96774"
+         y="699.50897"
+         style="font-size:10.6667px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
+         id="tspan4">under predation</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:10.6667px;line-height:1.25;font-family:Helvetica;-inkscape-font-specification:Helvetica;text-align:center;word-spacing:0px;text-anchor:middle;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
-       x="86.508507"
-       y="700.1756"
+       x="108.50851"
+       y="686.1756"
        id="text3616-4-6-7"><tspan
          sodipodi:role="line"
          id="tspan3614-0-9-8"
-         x="86.508507"
-         y="700.1756"
-         style="font-size:10.6667px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616">Predation makes prey risk averse</tspan></text>
+         x="108.50851"
+         y="686.1756"
+         style="font-size:10.6667px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616">Prey more risk-averse</tspan><tspan
+         sodipodi:role="line"
+         x="108.50851"
+         y="699.50897"
+         style="font-size:10.6667px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
+         id="tspan3">under predation</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:10.6667px;line-height:1.25;font-family:Helvetica;-inkscape-font-specification:Helvetica;text-align:center;word-spacing:0px;text-anchor:middle;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
@@ -13596,15 +13606,15 @@
        y="691.9101"
        id="text3616-4-6-8"><tspan
          sodipodi:role="line"
-         id="tspan3614-0-9-5"
          x="656.11768"
          y="691.9101"
-         style="font-size:10.6667px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616">Predation creates </tspan><tspan
+         style="font-size:10.6667px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
+         id="tspan1">Prey behave heterogeneously</tspan><tspan
          sodipodi:role="line"
          x="656.11768"
          y="705.24347"
          style="font-size:10.6667px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
-         id="tspan1">behavioural heterogeneity</tspan></text>
+         id="tspan6">under predation</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:10.6667px;line-height:1.25;font-family:Helvetica;-inkscape-font-specification:Helvetica;text-align:center;word-spacing:0px;text-anchor:middle;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
@@ -13612,14 +13622,14 @@
        y="690.58698"
        id="text3616-4-6-7-1"><tspan
          sodipodi:role="line"
-         id="tspan3614-0-9-8-8"
          x="474.80731"
          y="690.58698"
-         style="font-size:10.6667px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616">Predation creates</tspan><tspan
+         style="font-size:10.6667px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
+         id="tspan2">Prey behave similarly</tspan><tspan
          sodipodi:role="line"
          x="474.80731"
          y="703.92035"
          style="font-size:10.6667px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
-         id="tspan2"> behavioural conformity</tspan></text>
+         id="tspan5">under predation</tspan></text>
   </g>
 </svg>

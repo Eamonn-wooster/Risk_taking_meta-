@@ -2184,12 +2184,12 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="1.2218337"
-     inkscape:cx="223.02544"
-     inkscape:cy="315.91861"
-     inkscape:window-width="1920"
-     inkscape:window-height="1027"
-     inkscape:window-x="1512"
-     inkscape:window-y="25"
+     inkscape:cx="169.41749"
+     inkscape:cy="413.72242"
+     inkscape:window-width="1512"
+     inkscape:window-height="858"
+     inkscape:window-x="0"
+     inkscape:window-y="176"
      inkscape:window-maximized="1"
      inkscape:current-layer="g1"
      inkscape:export-bgcolor="#ffffffff">
@@ -4070,24 +4070,34 @@
     <text
        xml:space="preserve"
        style="font-size:12px;line-height:1.25;font-family:Helvetica;-inkscape-font-specification:Helvetica;text-align:center;word-spacing:0px;text-anchor:middle;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
-       x="295.84305"
-       y="534.38055"
+       x="271.84305"
+       y="520.38055"
        id="text3616-4-6"><tspan
          sodipodi:role="line"
          id="tspan3614-0-9"
-         x="295.84305"
-         y="534.38055"
-         style="font-size:12px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616">Predation makes prey risky</tspan></text>
+         x="271.84305"
+         y="520.38055"
+         style="font-size:12px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616">Prey more risky</tspan><tspan
+         sodipodi:role="line"
+         x="271.84305"
+         y="535.38055"
+         style="font-size:12px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
+         id="tspan2"> under predation</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:12px;line-height:1.25;font-family:Helvetica;-inkscape-font-specification:Helvetica;text-align:center;word-spacing:0px;text-anchor:middle;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
-       x="92.383827"
-       y="534.38055"
+       x="98.383827"
+       y="520.38055"
        id="text3616-4-6-7"><tspan
          sodipodi:role="line"
          id="tspan3614-0-9-8"
-         x="92.383827"
-         y="534.38055"
-         style="font-size:12px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616">Predation makes prey risk averse</tspan></text>
+         x="98.383827"
+         y="520.38055"
+         style="font-size:12px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616">Prey more risk-averse </tspan><tspan
+         sodipodi:role="line"
+         x="98.383827"
+         y="535.38055"
+         style="font-size:12px;fill:#6a675e;fill-opacity:0.7;stroke-width:0.730616"
+         id="tspan1">under predation</tspan></text>
   </g>
 </svg>
