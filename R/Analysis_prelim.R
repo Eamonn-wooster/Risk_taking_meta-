@@ -660,7 +660,7 @@ aj.cv <- orchard_plot(mod.aj.cv, xlab = "Difference in risk-taking (Hedge's g)",
 aj.cv
 
 
-###comp type#######
+###CV_comp type#######
 
 mod.com.cv <- rma.mv(yi = yi, V = vcv_cv,
                   random = list(~1 | Study_ID,
@@ -674,8 +674,8 @@ mod.com.cv <- rma.mv(yi = yi, V = vcv_cv,
                   R = list(Species = cor1))
 
 summary(mod.com.cv)
-z
-###class######
+
+###CV_class######
 
 mod.class.cv <- rma.mv(yi = yi, V = vcv_cv,
                      random = list(~1 | Study_ID,
