@@ -141,31 +141,28 @@ data$Firstauthor_Year <- paste(data$First_author, data$Year, sep = "_")
 
 data$Study_ID <- factor(as.numeric(as.factor(data$Firstauthor_Year)))
 
-
-
 ############################ Hedges Effect Size ################################
-
 
 # Calculate Hedges' g
 
 es <- escalc(
-  measure = "SMD",       # standardized mean difference
+  measure = "SMDH",       # standardized mean difference
   m1i = Mean_exp,
   sd1i = SD_exp_trans,
   n1i = n_exp,
   m2i = Mean_control,
   sd2i = SD_cont_trans,
   n2i = n_control,
-  data = data,
-  vtype = "UB"           # unbiased estimator = Hedges' g
+  data = data#,
+  #vtype = "UB"           # unbiased estimator = Hedges' g
 )
+#' [EJL: vtype should default to the least-biased estimator - why are you specifying UB?]
+
+#' [EJL: Also...Since there is a difference in variance between groups, you might want to consider using measure="SMDH" instead of SMD, which is meant for heteroscedastic data]
 
 # Inspect the results
 
 print(es) 
-
-
-
 
 ################################## Hedges Models ##################################
 
@@ -176,19 +173,74 @@ vcv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0
 
 #Overall model - we need this model - important to overall result and for pub bias analysis
 
+mod.overall.vcv <- rma.mv(yi = yi, V = vcv, #vcv, #' [EJL changed]
+                      random = list(#~1 | Study_ID / Obs_ID, #' [EJL changed]
+                                    ~1 | Species, # phylo effect 
+                                    ~1 | Species2#, # non-phylo effect 
+                      ), #' [EJL changed]
+                      data =  es,
+                      # control = list(optimizer="BFGS"),
+                      test = "t",
+                      sparse = TRUE,
+                      R = list(Species = cor1))
 
-mod.overall <- rma.mv(yi = yi, V = vcv,
-                             random = list(~1 | Study_ID,
+summary(mod.overall.vcv)
+
+
+mod.overall <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
+                             random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
                                            ~1 | Species, # phylo effect 
-                                           ~1 | Species2, # non-phylo effect 
-                                           ~1 | Obs_ID), 
+                                           ~1 | Species2#, # non-phylo effect 
+                                           ), #' [EJL changed]
                              data =  es,
                              # control = list(optimizer="BFGS"),
                              test = "t",
                              sparse = TRUE,
                              R = list(Species = cor1))
 
-  summary(mod.overall)
+summary(mod.overall)
+AIC(mod.overall.vcv, mod.overall)
+# Big improvement without VCV
+
+# >>> Choose optimal random effect (EJL) ----------------------------------
+#' [EJL:] Sigmas are super low for some of the levels, which could bias your estimates.
+#' I would compare to simpler models before reporting.
+
+mod.overall.simple1 <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
+                              random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                                            #~1 | Species, # phylo effect 
+                                            ~1 | Species2#, # non-phylo effect 
+                              ), #' [EJL changed]
+                              data =  es,
+                              # control = list(optimizer="BFGS"),
+                              test = "t",
+                              sparse = TRUE)
+
+summary(mod.overall.simple1)
+AIC(mod.overall, mod.overall.simple1)
+# Improved
+
+
+mod.overall.simple2 <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
+                              random = list(~1 | Study_ID / Obs_ID#, #' [EJL changed]
+                                            #~1 | Species, # phylo effect 
+                                            #~1 | Species2#, # non-phylo effect 
+                              ), #' [EJL changed]
+                              data =  es,
+                              # control = list(optimizer="BFGS"),
+                              test = "t",
+                              sparse = TRUE)
+
+summary(mod.overall.simple2)
+# Identical, but slightly smaller, so i guess either way haha
+AIC(mod.overall.simple1, mod.overall.simple2)
+# Improved slightly.
+
+
+# Copy best model:
+mod.overall <- mod.overall.simple2
+
+# >>> Final model summaries/plot ---------------------------------------------------------
 
 
 I2 = round(i2_ml(mod.overall), 2)
@@ -196,7 +248,11 @@ I2 = round(i2_ml(mod.overall), 2)
 I2
 
 overall <- orchard_plot(mod.overall, xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID",
-                        angle = 0,col = "#eea196")
+                        angle = 0, col = "#eea196")
+#' [EJL] This produced an error for me:
+# Error in if (colour) as.factor(data_trim$stdy) else data_trim$moderator : 
+# argument is not interpretable as logical
+
 overall <- overall + scale_fill_manual(values = "#eea196") + scale_color_manual(values = "#eea196") 
 
 overall
@@ -210,12 +266,15 @@ round(i2_ml(mod.overall), 2)
 ##Behaviour type####
 
 unique(data$Behaviour_type)
+#' [EJL: I would change the rest of the models...And probably should do the random effect model comparisons as well]
+#' [This is why I often run models with a model guide in a big loop—run all the models with all justifiable random effects, save each as an .Rds,
+#' [then choose the best model without looking at results]
+#' [I could help you script that up if you want]
 
-mod.behav <- rma.mv(yi = yi, V = vcv,
-                      random = list(~1 | Study_ID,
+mod.behav <- rma.mv(yi = yi, V = vi,
+                      random = list(~1 | Study_ID / Obs_ID, #' [EJL Change]
                                     ~1 | Species, # phylo effect 
-                                    ~1 | Species2, # non-phylo effect 
-                                    ~1 | Obs_ID), 
+                                    ~1 | Species2), 
                       data =  es,
                       mods = ~ Behaviour_type -1,
                       test = "t",
@@ -395,11 +454,11 @@ class
 es$effectN <- (es$n_control * es$n_exp) / (es$n_control + es$n_exp)
 es$sqeffectN <- sqrt(es$effectN)
 
-mod.egg <- rma.mv(yi = yi, V = vcv,
-                  random = list(~1 | Study_ID,
+#' [EJL Changed:]
+mod.egg <- rma.mv(yi = yi, V = vi,
+                  random = list(~1 | Study_ID / Obs_ID,
                                 ~1 | Species, # phylo effect 
-                                ~1 | Species2, # non-phylo effect 
-                                ~1 | Obs_ID), 
+                                ~1 | Species2), 
                   data =  es,
                   mods = ~ sqeffectN,
                   test = "t",
@@ -425,12 +484,11 @@ funnel(mod.egg)
 ##no change with trim and fill. Likely means the funnel assymerty is due to heterogeneity rather than pub bias but we should report this in the manuscript.
 
 ###Decline effect #####
-
-mod.mad <- rma.mv(yi = yi, V = vcv,
-                          random = list(~1 | Study_ID,
+#' [EJL Changed:]
+mod.mad <- rma.mv(yi = yi, V = vi,
+                          random = list(~1 | Study_ID / Obs_ID,
                                         ~1 | Species, # phylo effect 
-                                        ~1 | Species2, # non-phylo effect 
-                                        ~1 | Obs_ID), 
+                                        ~1 | Species2), 
                           data =  es,
                           mods = ~ Year,
                           test = "t",
@@ -441,7 +499,20 @@ mod.mad <- rma.mv(yi = yi, V = vcv,
 summary(mod.mad) # no effect
 
 ###Leave on out####
+#' [EJL: I think cooks.distance() on the model object basically does LOO (and code is one line..It'll give you a value that indicates how much estimates changed with each study)]
+#' [If you specify strata I think]
 
+cook.out <- cooks.distance(model = mod.overall,
+                           cluster = Study_ID)
+# There are a few different thresholds but I've seen a lot that exclude studies with cook > 4/N studies
+4 / length(unique(cook.out))
+
+cook.out[cook.out > 4 / length(unique(cook.out))]
+# Which is only study 42. So you could rerun those models without study 42.
+
+
+
+#' [Back to original code:]
 dat <- es %>%
   mutate(leave_out = paste(First_author, Year, sep = "_"))
 dat$leave_out <- as.factor(dat$leave_out)
