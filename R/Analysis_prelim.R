@@ -83,12 +83,10 @@ dat$Species2 <- dat$Species
 
 # Function for converting CI's to SD
 
-ci_to_sd <- function(bound, mean, n, ci_level = 0.95) {
+me_to_sd <- function(me, n, ci_level = 0.95) {
   alpha <- 1 - ci_level
-  z <- qnorm(1 - alpha / 2)
-  me <- abs(bound - mean)
-  sd <- me * sqrt(n) / z
-  return(sd)
+  tcrit <- qt(1 - alpha/2, df = n - 1)
+  me * sqrt(n) / tcrit
 }
 
 # Function for converting SE to SD
@@ -117,9 +115,9 @@ SD$SD_exp_trans <- SD$SD_exp
 
 CI <- filter(dat, Error_type == "CI")
 
-CI$SD_cont_trans <- ci_to_sd(CI$SD_control, CI$Mean_control, CI$n_control)
+CI$SD_cont_trans <- me_to_sd(CI$SD_control, CI$n_control)
 
-CI$SD_exp_trans <- ci_to_sd(CI$SD_exp, CI$Mean_exp, CI$n_exp)
+CI$SD_exp_trans <- me_to_sd(CI$SD_exp, CI$n_exp)
 
 ### >>> Standard error --------
 
@@ -137,7 +135,7 @@ data <- rbind(SD, CI, SE)
 
 data$Obs_ID <- factor(1:nrow(data))
 
-# Study level random effect # using Study_ID for now but will extract extra data for first author/year later 
+# Study level random effect 
 
 data$Firstauthor_Year <- paste(data$First_author, data$Year, sep = "_")
 
@@ -416,6 +414,7 @@ mod_simple <- rma(yi = yi, vi = vi, data = es)
 
 mod_simple
 tf <- trimfill(mod_simple)
+tf
 
 range(es$yi)
 range(sqrt(es$vi)) 
@@ -509,46 +508,77 @@ leaveoneout <- ggplot(MA_oneout) +
 
 leaveoneout
 
-##############lnVR models##################
+###Sens analysis for lncvr####
+
+sens.es <- filter(es, Mean_control > 0)
+
+sens.es <- filter(sens.es, Mean_exp > 0)
+
+sens.es$Obs_ID <- factor(1:nrow(sens.es))
+
+vcv_sens.es <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
+                data = sens.es) 
+
+mod.behav.sens <- rma.mv(yi = yi, V = vcv_sens.es,
+                    random = list(~1 | Study_ID,
+                                  ~1 | Species, # phylo effect 
+                                  ~1 | Species2, # non-phylo effect 
+                                  ~1 | Obs_ID), 
+                    data =  sens.es,
+                    test = "t",
+                    sparse = TRUE,
+                    R = list(Species = cor1))
+
+summary(mod.behav.sens)
+
+#removing those studies does NOT change the overall results!!!
+
+
+##############lncv models##################
+
+#removing negatives from the dataset
+cv <- filter(data, Mean_control > 0)
+
+cv <- filter(cv, Mean_exp > 0)
 
 
 
-# Calculate lnVR
+# Calculate lncv
 
 cv <- escalc(
-  measure = "VR",       # standardized mean difference
+  measure = "CVR",     
   m1i = Mean_exp,
   sd1i = SD_exp_trans,
   n1i = n_exp,
   m2i = Mean_control,
   sd2i = SD_cont_trans,
   n2i = n_control,
-  data = data
+  data = cv
 )
 
 cv$Obs_ID <- factor(1:nrow(cv))
 
 vcv_cv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
-             data = es) 
+                data = cv) 
 
 
 mod.overall_cv <- rma.mv(yi = yi, V = vcv_cv,
-                      random = list(~1 | Study_ID,
-                                    ~1 | Species, # phylo effect 
-                                    ~1 | Species2, # non-phylo effect 
-                                    ~1 | Obs_ID), 
-                      data =  cv,
-                      # control = list(optimizer="BFGS"),
-                      test = "t",
-                      sparse = TRUE,
-                      R = list(Species = cor1))
+                         random = list(~1 | Study_ID,
+                                       ~1 | Species, # phylo effect 
+                                       ~1 | Species2, # non-phylo effect 
+                                       ~1 | Obs_ID), 
+                         data =  cv,
+                         # control = list(optimizer="BFGS"),
+                         test = "t",
+                         sparse = TRUE,
+                         R = list(Species = cor1))
 
 summary(mod.overall_cv)
 
 
 
-overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking (lnVR)", group = "Study_ID",
-                        angle = 0)
+overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking (lncv)", group = "Study_ID",
+                           angle = 0)
 overall_cv <- overall_cv + scale_fill_manual(values = "#989aae") + scale_color_manual(values = "#989aae") 
 
 overall_cv
@@ -556,43 +586,44 @@ overall_cv
 #CV_ behaviour type####
 
 mod.behav_cv <- rma.mv(yi = yi, V = vcv_cv,
-                    random = list(~1 | Study_ID,
-                                  ~1 | Species, # phylo effect 
-                                  ~1 | Species2, # non-phylo effect 
-                                  ~1 | Obs_ID), 
-                    data =  cv,
-                    mods = ~ Behaviour_type -1,
-                    test = "t",
-                    sparse = TRUE,
-                    R = list(Species = cor1))
+                       random = list(~1 | Study_ID,
+                                     ~1 | Species, # phylo effect 
+                                     ~1 | Species2, # non-phylo effect 
+                                     ~1 | Obs_ID), 
+                       data =  cv,
+                       mods = ~ Behaviour_type -1,
+                       test = "t",
+                       sparse = TRUE,
+                       R = list(Species = cor1))
 
 summary(mod.behav_cv)
+
 
 ###CV_ Sex######
 
 ses_cv <- filter(cv, Sex != "N/A")
 
 vcv_ses_cv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
-                 data = ses_cv)
+                    data = ses_cv)
 
 
 mod.sex.cv <- rma.mv(yi = yi, V = vcv_ses_cv,
-                  random = list(~1 | Study_ID,
-                                ~1 | Species, # phylo effect 
-                                ~1 | Species2, # non-phylo effect 
-                                ~1 | Obs_ID), 
-                  data =  ses_cv,
-                  mods = ~ Sex -1,
-                  test = "t",
-                  sparse = TRUE,
-                  R = list(Species = cor1))
+                     random = list(~1 | Study_ID,
+                                   ~1 | Species, # phylo effect 
+                                   ~1 | Species2, # non-phylo effect 
+                                   ~1 | Obs_ID), 
+                     data =  ses_cv,
+                     mods = ~ Sex -1,
+                     test = "t",
+                     sparse = TRUE,
+                     R = list(Species = cor1))
 
 summary(mod.sex.cv) 
 
 cvcolour <- c("#989aae","#989aae","#989aae")
 
 s.cv <- orchard_plot(mod.sex.cv, xlab = "Heterogeneity in risk-taking (Hedge's g)", group = "Study_ID", mod = "Sex",
-                  angle = 0) +
+                     angle = 0) +
   scale_fill_manual(values = cvcolour) +
   scale_colour_manual(values = cvcolour)
 
@@ -607,30 +638,32 @@ str(cv)
 
 
 mod.rp.cv <- rma.mv(yi = yi, V = vcv_cv,
-                 random = list(~1 | Study_ID,
-                               ~1 | Species, # phylo effect 
-                               ~1 | Species2, # non-phylo effect 
-                               ~1 | Obs_ID), 
-                 data =  cv,
-                 mods = ~ Real_predator -1,
-                 test = "t",
-                 sparse = TRUE,
-                 R = list(Species = cor1))
+                    random = list(~1 | Study_ID,
+                                  ~1 | Species, # phylo effect 
+                                  ~1 | Species2, # non-phylo effect 
+                                  ~1 | Obs_ID), 
+                    data =  cv,
+                    mods = ~ Real_predator -1,
+                    test = "t",
+                    sparse = TRUE,
+                    R = list(Species = cor1))
 
 summary(mod.rp.cv)
+
+#only real predators create heterogeneity in risk-taking behaviour.
 
 ###CV low vs no predator#####
 
 mod.ln.cv <- rma.mv(yi = yi, V = vcv_cv,
-                 random = list(~1 | Study_ID,
-                               ~1 | Species, # phylo effect 
-                               ~1 | Species2, # non-phylo effect 
-                               ~1 | Obs_ID), 
-                 data =  cv,
-                 mods = ~ Low_or_no_pred -1,
-                 test = "t",
-                 sparse = TRUE,
-                 R = list(Species = cor1))
+                    random = list(~1 | Study_ID,
+                                  ~1 | Species, # phylo effect 
+                                  ~1 | Species2, # non-phylo effect 
+                                  ~1 | Obs_ID), 
+                    data =  cv,
+                    mods = ~ Low_or_no_pred -1,
+                    test = "t",
+                    sparse = TRUE,
+                    R = list(Species = cor1))
 
 summary(mod.ln.cv)
 
@@ -640,20 +673,20 @@ cv$Adult <- factor(cv$Adult,
                    levels = c("Adult", "Juvenille", "Both"))
 
 mod.aj.cv <- rma.mv(yi = yi, V = vcv_cv,
-                 random = list(~1 | Study_ID,
-                               ~1 | Species, # phylo effect 
-                               ~1 | Species2, # non-phylo effect 
-                               ~1 | Obs_ID), 
-                 data =  cv,
-                 mods = ~ Adult -1,
-                 test = "t",
-                 sparse = TRUE,
-                 R = list(Species = cor1))
+                    random = list(~1 | Study_ID,
+                                  ~1 | Species, # phylo effect 
+                                  ~1 | Species2, # non-phylo effect 
+                                  ~1 | Obs_ID), 
+                    data =  cv,
+                    mods = ~ Adult -1,
+                    test = "t",
+                    sparse = TRUE,
+                    R = list(Species = cor1))
 
 summary(mod.aj.cv)
 
 aj.cv <- orchard_plot(mod.aj.cv, xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID", mod = "Adult",
-                   angle = 0) +
+                      angle = 0) +
   scale_fill_manual(values = cvcolour) +
   scale_colour_manual(values = cvcolour)
 
@@ -663,44 +696,44 @@ aj.cv
 ###CV_comp type#######
 
 mod.com.cv <- rma.mv(yi = yi, V = vcv_cv,
-                  random = list(~1 | Study_ID,
-                                ~1 | Species, # phylo effect 
-                                ~1 | Species2, # non-phylo effect 
-                                ~1 | Obs_ID), 
-                  data =  cv,
-                  mods = ~ Comparison_type -1,
-                  test = "t",
-                  sparse = TRUE,
-                  R = list(Species = cor1))
+                     random = list(~1 | Study_ID,
+                                   ~1 | Species, # phylo effect 
+                                   ~1 | Species2, # non-phylo effect 
+                                   ~1 | Obs_ID), 
+                     data =  cv,
+                     mods = ~ Comparison_type -1,
+                     test = "t",
+                     sparse = TRUE,
+                     R = list(Species = cor1))
 
 summary(mod.com.cv)
 
 ###CV_class######
 
 mod.class.cv <- rma.mv(yi = yi, V = vcv_cv,
-                     random = list(~1 | Study_ID,
-                                   ~1 | Species, # phylo effect 
-                                   ~1 | Species2, # non-phylo effect 
-                                   ~1 | Obs_ID), 
-                     data =  cv,
-                     mods = ~ Class -1,
-                     test = "t",
-                     sparse = TRUE,
-                     R = list(Species = cor1))
-
-summary(mod.class.cv)
-
-###predator pressure.cv######
-mod.pp.cv <- rma.mv(yi = yi, V = vcv_cv,
                        random = list(~1 | Study_ID,
                                      ~1 | Species, # phylo effect 
                                      ~1 | Species2, # non-phylo effect 
                                      ~1 | Obs_ID), 
                        data =  cv,
-                       mods = ~ Predation_pressure -1,
+                       mods = ~ Class -1,
                        test = "t",
                        sparse = TRUE,
                        R = list(Species = cor1))
+
+summary(mod.class.cv)
+
+###predator pressure.cv######
+mod.pp.cv <- rma.mv(yi = yi, V = vcv_cv,
+                    random = list(~1 | Study_ID,
+                                  ~1 | Species, # phylo effect 
+                                  ~1 | Species2, # non-phylo effect 
+                                  ~1 | Obs_ID), 
+                    data =  cv,
+                    mods = ~ Predation_pressure -1,
+                    test = "t",
+                    sparse = TRUE,
+                    R = list(Species = cor1))
 
 summary(mod.pp.cv)
 
@@ -741,8 +774,10 @@ mod7 <- coef(summary(mod.aj))
 
 mod8 <- coef(summary(mod.rp))
 
+mod9 <- coef(summary(mod.com))
 
-table1 <- rbind(mod1, mod2, mod3, mod4, mod5, mod6, mod7)
+table1 <- rbind(mod1, mod2, mod3, mod4, mod5, mod6, mod7, mod8, mod9)
+
 
 table1$term <- rownames(table1)
 
@@ -761,10 +796,11 @@ mod5.cv <- coef(summary(mod.rp.cv))
 
 mod6.cv <- coef(summary(mod.ln.cv))
 
-mod7.cv <- coef(summary(mod.aj.cv))
+mod8.cv <- coef(summary(mod.com.cv))
 
+mod9.cv <- coef(summary(mod.pp.cv))
 
-table2 <- rbind(mod1.cv, mod2.cv, mod3.cv, mod4.cv, mod5.cv, mod6.cv, mod7.cv)
+table2 <- rbind(mod1.cv, mod2.cv, mod3.cv, mod4.cv, mod5.cv, mod6.cv, mod7.cv, mod8.cv, mod9.cv)
 
 table2$term <- rownames(table2)
 
@@ -774,96 +810,5 @@ write.csv(table2, "Figures/Sup_table2.csv")
 
 ###END##### 
 
-#Scribles below 
 
-#time exposed### - not sure if this metric makes any sense nor how to test it in a meaningful way....
-
-# #filter out non numbers
-# unique(es$time_exposed_days)
-# es_time <- es %>% filter(time_exposed_days != "N/A" & time_exposed_days != "Max")
-# 
-# unique(es_time$time_exposed_days)
-# #convert time_exposed_days to numeric
-# 
-# es_time$time_exposed_days <- as.numeric(es_time$time_exposed_days)
-# 
-# str(es_time$time_exposed_days)
-# 
-# #log transform time_exposed_days
-# es_time$log_time_exposed_days <- log(es_time$time_exposed_days)
-# 
-# vcv_time <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
-#              data = es_time)
-# 
-# mod.time <- rma.mv(yi = yi, V = vcv_time,
-#                   random = list(~1 | Study_ID,
-#                                 ~1 | Species, # phylo effect 
-#                                 ~1 | Species2, # non-phylo effect 
-#                                 ~1 | Obs_ID), 
-#                   data =  es_time,
-#                   mods = ~ log_time_exposed_days,
-#                   test = "t",
-#                   sparse = TRUE,
-#                   R = list(Species = cor1))
-# 
-# summary(mod.time)
-# 
-# #plot it
-# 
-# newdat_rat_time <- data.frame(time_exp = seq(min(es_time$log_time_exposed_days, na.rm = TRUE),
-#                                               max(es_time$log_time_exposed_days, na.rm = TRUE),
-#                                               length.out = 100))
-# 
-# X_rat_time <- model.matrix(~ time_exp, data = newdat_rat_time)[, -1, drop = FALSE]
-# 
-# time_rat_time <- predict(mod.time, newmods = X_rat_time)
-# 
-# plot_data_time <- cbind(newdat_rat_time, time_rat_time)
-# 
-# setDT(es_time)
-# es_time[, wi := 1/sqrt(vi)]
-# es_time[, pt_size := 2 + 7 * (wi-min(wi, na.rm = T)) / (max(wi, na.rm = T) - min(wi, na.rm = T))]
-# es_time
-# 
-# time_text <- tidy(mod.time)
-# time_text
-# 
-# bottom_margin <- margin(5, 5, 30, 5)
-# 
-# time_exp <- ggplot()+
-#   # now add the rest of the points:
-#   geom_jitter(data = es_time, 
-#               aes(x = log_time_exposed_days, size = pt_size, #ignore point size
-#                   y = yi),
-#               position = position_jitter(width = 0.01),
-#               inherit.aes = F,  alpha = 0.5, color = "#3d405bff")+
-#   geom_hline(yintercept = 0, lty = "dashed")+
-#   geom_ribbon(data = plot_data_time,
-#               aes(x = time_exp,
-#                   ymin = pi.lb, ymax = pi.ub),
-#               fill = "transparent", color = "#dad7cd",
-#               alpha = .3)+
-#   geom_ribbon(data = plot_data_time, 
-#               aes(x = time_exp,
-#                   ymin = ci.lb, ymax = ci.ub),
-#               alpha = .3)+
-#   geom_line(data = plot_data_time, 
-#             aes(x = time_exp,
-#                 y = pred),
-#             alpha = .8)+
-#   
-#   # coord_cartesian(ylim = c(-4, 4))+
-#   scale_size_identity()+
-#   theme_bw()+
-#   theme(
-#     plot.margin = bottom_margin)+
-#   xlab("Time exposed to predators (log)")+
-#   ylab("Risk taking behaviour (Hedge's g)")+
-#   theme(legend.position = "none",
-#         text = element_text(color = "black", family = "Helvetica"), axis.text = element_text(color = "black", family = "Helvetica"),
-#         panel.grid = element_blank(),
-#         panel.border = element_blank())
-# 
-# 
-# time_exp
 
