@@ -141,6 +141,20 @@ data$Firstauthor_Year <- paste(data$First_author, data$Year, sep = "_")
 
 data$Study_ID <- factor(as.numeric(as.factor(data$Firstauthor_Year)))
 
+###Sort of the negative issues
+
+inv <- filter(data, Sign_inverted == "Yes")
+
+not <- filter(data, Sign_inverted == "No")
+
+#Ok lets flip the sign back for inv
+
+inv$Mean_control <- abs(inv$Mean_control)
+
+inv$Mean_exp <- abs(inv$Mean_exp)
+
+data2 <- rbind(inv, not)
+
 ############################ Hedges Effect Size ################################
 
 # Calculate Hedges' g
@@ -153,16 +167,17 @@ es <- escalc(
   m2i = Mean_control,
   sd2i = SD_cont_trans,
   n2i = n_control,
-  data = data#,
-  #vtype = "UB"           # unbiased estimator = Hedges' g
+  data = data2
 )
-#' [EJL: vtype should default to the least-biased estimator - why are you specifying UB?]
 
 #' [EJL: Also...Since there is a difference in variance between groups, you might want to consider using measure="SMDH" instead of SMD, which is meant for heteroscedastic data]
 
 # Inspect the results
 
 print(es) 
+
+##now we need to reinvert the effect sizes the sign on "yes" on sign-inverted
+
 
 ################################## Hedges Models ##################################
 
@@ -605,7 +620,7 @@ summary(mod.behav.sens)
 #removing those studies does NOT change the overall results!!!
 
 
-##############lncv models##################
+##############lncvr models##################
 
 #removing negatives from the dataset
 cv <- filter(data, Mean_control > 0)
@@ -614,7 +629,7 @@ cv <- filter(cv, Mean_exp > 0)
 
 
 
-# Calculate lncv
+# Calculate lncvr
 
 cv <- escalc(
   measure = "CVR",     
@@ -633,11 +648,8 @@ vcv_cv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usuall
                 data = cv) 
 
 
-mod.overall_cv <- rma.mv(yi = yi, V = vcv_cv,
-                         random = list(~1 | Study_ID,
-                                       ~1 | Species, # phylo effect 
-                                       ~1 | Species2, # non-phylo effect 
-                                       ~1 | Obs_ID), 
+mod.overall_cv <- rma.mv(yi = yi, V = vi,
+                         random = list(~1 | Study_ID / Obs_ID), 
                          data =  cv,
                          # control = list(optimizer="BFGS"),
                          test = "t",
@@ -648,7 +660,7 @@ summary(mod.overall_cv)
 
 
 
-overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking (lncv)", group = "Study_ID",
+overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking (lnCVR)", group = "Study_ID",
                            angle = 0)
 overall_cv <- overall_cv + scale_fill_manual(values = "#989aae") + scale_color_manual(values = "#989aae") 
 
