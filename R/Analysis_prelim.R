@@ -149,9 +149,9 @@ not <- filter(data, Sign_inverted == "No")
 
 #Ok lets flip the sign back for inv
 
-inv$Mean_control <- abs(inv$Mean_control)
+inv$Mean_control <- -inv$Mean_control
 
-inv$Mean_exp <- abs(inv$Mean_exp)
+inv$Mean_exp <- -inv$Mean_exp
 
 data2 <- rbind(inv, not)
 
@@ -178,6 +178,17 @@ print(es)
 
 ##now we need to reinvert the effect sizes the sign on "yes" on sign-inverted
 
+es_inv <- filter(es, Sign_inverted == "Yes")
+
+es_not <- filter(es, Sign_inverted == "No")
+
+#Ok lets flip the sign back for inv
+
+es_inv$yi <- -es_inv$yi
+
+
+es2 <- rbind(es_inv, es_not)
+
 
 ################################## Hedges Models ##################################
 
@@ -193,7 +204,7 @@ mod.overall.vcv <- rma.mv(yi = yi, V = vcv, #vcv, #' [EJL changed]
                                     ~1 | Species, # phylo effect 
                                     ~1 | Species2#, # non-phylo effect 
                       ), #' [EJL changed]
-                      data =  es,
+                      data =  es2,
                       # control = list(optimizer="BFGS"),
                       test = "t",
                       sparse = TRUE,
@@ -623,9 +634,15 @@ summary(mod.behav.sens)
 ##############lncvr models##################
 
 #removing negatives from the dataset
-cv <- filter(data, Mean_control > 0)
+cv <- filter(data2, Mean_control > 0)
 
 cv <- filter(cv, Mean_exp > 0)
+
+#remove methods where a value could be negative 
+
+cv <- filter(cv, Metric != "PCA values")
+
+#list of studies/ sizes that should be dropped
 
 
 
