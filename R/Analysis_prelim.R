@@ -160,7 +160,7 @@ data2 <- rbind(inv, not)
 # Calculate Hedges' g
 
 es <- escalc(
-  measure = "SMDH",       # standardized mean difference
+  measure = "SMDH",     
   m1i = Mean_exp,
   sd1i = SD_exp_trans,
   n1i = n_exp,
@@ -170,7 +170,7 @@ es <- escalc(
   data = data2
 )
 
-#' [EJL: Also...Since there is a difference in variance between groups, you might want to consider using measure="SMDH" instead of SMD, which is meant for heteroscedastic data]
+
 
 # Inspect the results
 
@@ -197,7 +197,6 @@ es2 <- rbind(es_inv, es_not)
 vcv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
              data = es) 
 
-#Overall model - we need this model - important to overall result and for pub bias analysis
 
 mod.overall.vcv <- rma.mv(yi = yi, V = vcv, #vcv, #' [EJL changed]
                       random = list(#~1 | Study_ID / Obs_ID, #' [EJL changed]
@@ -237,7 +236,7 @@ mod.overall.simple1 <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
                                             #~1 | Species, # phylo effect 
                                             ~1 | Species2#, # non-phylo effect 
                               ), #' [EJL changed]
-                              data =  es,
+                              data =  es2,
                               # control = list(optimizer="BFGS"),
                               test = "t",
                               sparse = TRUE)
@@ -292,33 +291,33 @@ round(i2_ml(mod.overall), 2)
 ##Behaviour type####
 
 unique(data$Behaviour_type)
-#' [EJL: I would change the rest of the models...And probably should do the random effect model comparisons as well]
-#' [This is why I often run models with a model guide in a big loop—run all the models with all justifiable random effects, save each as an .Rds,
-#' [then choose the best model without looking at results]
-#' [I could help you script that up if you want]
+
+es2$Behaviour_type <- factor(
+  es2$Behaviour_type,
+  levels = sort(unique(es2$Behaviour_type), decreasing = TRUE)
+)
+
 
 mod.behav <- rma.mv(yi = yi, V = vi,
-                      random = list(~1 | Study_ID / Obs_ID, #' [EJL Change]
-                                    ~1 | Species, # phylo effect 
-                                    ~1 | Species2), 
-                      data =  es,
+                      random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                                    # ~1 | Species, # phylo effect 
+                                    # ~1 | Species2), 
+                      data =  es2,
                       mods = ~ Behaviour_type -1,
                       test = "t",
-                      sparse = TRUE,
-                      R = list(Species = cor1))
+                      sparse = TRUE)
+                      # R = list(Species = cor1))
+
 
 summary(mod.behav)
 
-
-#plotting behaviour type with orchard
-b_colours <- c("#eea196", "#a8c5da", "#b5d5a8", "#f5c97a", "#c3a8d1", "#f0a8c0", "#a8d4d0")
 
 behav <- orchard_plot(mod.behav, mod = "Behaviour_type", 
                       xlab = "Difference in risk-taking behaviour (Hedge's g)", 
                       group = "Study_ID",
                       angle = 0) +
-  scale_fill_manual(values = b_colours) +
-  scale_colour_manual(values = b_colours)
+  scale_fill_manual(values = rep("#eea196", 7)) +
+  scale_color_manual(values = rep("#eea196", 7))
 
 behav
 
@@ -326,68 +325,50 @@ behav
 
 #Sex#####
 
-ses <- filter(es, Sex != "N/A")
+ses <- filter(es2, Sex != "N/A")
 
-vcv_ses <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
-             data = ses)
-
-mod.sex <- rma.mv(yi = yi, V = vcv_ses,
-                    random = list(~1 | Study_ID,
-                                  ~1 | Species, # phylo effect 
-                                  ~1 | Species2, # non-phylo effect 
-                                  ~1 | Obs_ID), 
+mod.sex <- rma.mv(yi = yi, V = vi,
+                  random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                  # ~1 | Species, # phylo effect 
+                  # ~1 | Species2),
                     data =  ses,
                     mods = ~ Sex -1,
                     test = "t",
-                    sparse = TRUE,
-                    R = list(Species = cor1))
+                    sparse = TRUE)
 
 summary(mod.sex)
 
 
-scolour <- c("#eea196","#eea196","#eea196")
-
-s <- orchard_plot(mod.sex, xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID", mod = "Sex",
-                        angle = 0) +
-  scale_fill_manual(values = scolour) +
-  scale_colour_manual(values = scolour)
-
-
-s
 
 #Pred_pressure#######
 
-mod.pp <- rma.mv(yi = yi, V = vcv,
-                  random = list(~1 | Study_ID,
-                                ~1 | Species, # phylo effect 
-                                ~1 | Species2, # non-phylo effect 
-                                ~1 | Obs_ID), 
-                  data =  es,
+mod.pp <- rma.mv(yi = yi, V = vi,
+                 random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                 # ~1 | Species, # phylo effect 
+                 # ~1 | Species2),
+                  data =  es2,
                   mods = ~ Predation_pressure -1,
                   test = "t",
-                  sparse = TRUE,
-                  R = list(Species = cor1))
+                  sparse = TRUE)
 
 summary(mod.pp)
 
 
 #real vs simulated pred#######
 
-es$Real_predator <- as.factor(es$Real_predator)
+es2$Real_predator <- as.factor(es2$Real_predator)
 
-str(es)
+str(es2)
 
 
-mod.rp <- rma.mv(yi = yi, V = vcv,
-                 random = list(~1 | Study_ID,
-                               ~1 | Species, # phylo effect 
-                               ~1 | Species2, # non-phylo effect 
-                               ~1 | Obs_ID), 
-                 data =  es,
+mod.rp <- rma.mv(yi = yi, V = vi,
+                 random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                 # ~1 | Species, # phylo effect 
+                 # ~1 | Species2), 
+                 data =  es2, 
                  mods = ~ Real_predator -1,
                  test = "t",
-                 sparse = TRUE,
-                 R = list(Species = cor1))
+                 sparse = TRUE)
 
 summary(mod.rp)
 
@@ -395,81 +376,84 @@ anova(mod.rp, L = c(1, -1))
 
 ###low vs no predator######
 
-mod.ln <- rma.mv(yi = yi, V = vcv,
-                 random = list(~1 | Study_ID,
-                               ~1 | Species, # phylo effect 
-                               ~1 | Species2, # non-phylo effect 
-                               ~1 | Obs_ID), 
-                 data =  es,
+mod.ln <- rma.mv(yi = yi, V = vi,
+                 random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                 # ~1 | Species, # phylo effect 
+                 # ~1 | Species2), 
+                 data =  es2, 
                  mods = ~ Low_or_no_pred -1,
                  test = "t",
-                 sparse = TRUE,
-                 R = list(Species = cor1))
+                 sparse = TRUE)
 
 summary(mod.ln)
 
 ###adult vs juvenille#####
 
-es$Adult <- factor(es$Adult, 
+es2$Adult <- factor(es2$Adult, 
                               levels = c("Adult", "Juvenille", "Both"))
 
-mod.aj <- rma.mv(yi = yi, V = vcv,
-                 random = list(~1 | Study_ID,
-                               ~1 | Species, # phylo effect 
-                               ~1 | Species2, # non-phylo effect 
-                               ~1 | Obs_ID), 
-                 data =  es,
+mod.aj <- rma.mv(yi = yi, V = vi,
+                 random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                 # ~1 | Species, # phylo effect 
+                 # ~1 | Species2), 
+                 data =  es2, 
                  mods = ~ Adult -1,
                  test = "t",
-                 sparse = TRUE,
-                 R = list(Species = cor1))
+                 sparse = TRUE)
 
 summary(mod.aj)
 
-aj <- orchard_plot(mod.aj, xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID", mod = "Adult",
-                  angle = 0) +
-  scale_fill_manual(values = scolour) +
-  scale_colour_manual(values = scolour)
-
-aj
-
 ###comp type######
 
-mod.com <- rma.mv(yi = yi, V = vcv,
-                 random = list(~1 | Study_ID,
-                               ~1 | Species, # phylo effect 
-                               ~1 | Species2, # non-phylo effect 
-                               ~1 | Obs_ID), 
-                 data =  es,
+mod.com <- rma.mv(yi = yi, V = vi,
+                  random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                  # ~1 | Species, # phylo effect 
+                  # ~1 | Species2), 
+                  data =  es2, 
                  mods = ~ Comparison_type -1,
                  test = "t",
-                 sparse = TRUE,
-                 R = list(Species = cor1))
+                 sparse = TRUE)
 
 summary(mod.com)
 
 ###Class##########
 
-unique(es$Class)
+unique(es2$Class)
 
-mod.class <- rma.mv(yi = yi, V = vcv,
-                  random = list(~1 | Study_ID,
-                                ~1 | Species, # phylo effect 
-                                ~1 | Species2, # non-phylo effect 
-                                ~1 | Obs_ID), 
-                  data =  es,
+
+es2 <- es2 %>%
+  mutate(Class = recode(Class,
+                        "Actinopterygii" = "Ray-finned fishes",
+                        "Amphibia" = "Amphibians",
+                        "Mammalia" = "Mammals",
+                        "Reptilia" = "Reptiles",
+                        "Malacostraca" = "Crustaceans",
+                        "Chondrichthyes" = "Cartilaginous fishes",
+                        "Aves" = "Birds"
+  ))
+
+es2$Class <- factor(
+  es2$Class,
+  levels = sort(unique(es2$Class), decreasing = TRUE)
+)
+
+
+mod.class <- rma.mv(yi = yi, V = vi,
+                    random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                    # ~1 | Species, # phylo effect 
+                    # ~1 | Species2),  
+                  data =  es2,
                   mods = ~ Class -1,
                   test = "t",
-                  sparse = TRUE,
-                  R = list(Species = cor1))
+                  sparse = TRUE)
+                
 
 summary(mod.class)
 
 class <- orchard_plot(mod.class, mod = "Class", xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID",
                       angle = 0) + 
-  scale_fill_manual(values = b_colours) +
-  scale_colour_manual(values = b_colours)
-
+  scale_fill_manual(values = rep("#eea196", 7)) +
+  scale_color_manual(values = rep("#eea196", 7))
 class   
 
 
@@ -477,25 +461,24 @@ class
 
 ####Eggers regression - significant intercept - evidence of pub bias
 
-es$effectN <- (es$n_control * es$n_exp) / (es$n_control + es$n_exp)
-es$sqeffectN <- sqrt(es$effectN)
+es2$effectN <- (es2$n_control * es2$n_exp) / (es2$n_control + es2$n_exp)
+es2$sqeffectN <- sqrt(es2$effectN)
 
 #' [EJL Changed:]
 mod.egg <- rma.mv(yi = yi, V = vi,
-                  random = list(~1 | Study_ID / Obs_ID,
-                                ~1 | Species, # phylo effect 
-                                ~1 | Species2), 
-                  data =  es,
+                  random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                  # ~1 | Species, # phylo effect 
+                  # ~1 | Species2),  
+                  data =  es2,
                   mods = ~ sqeffectN,
                   test = "t",
-                  sparse = TRUE,
-                  R = list(Species = cor1))
+                  sparse = TRUE)
 
 summary(mod.egg)
 
 #exploring pub bias 
 
-mod_simple <- rma(yi = yi, vi = vi, data = es)
+mod_simple <- rma(yi = yi, vi = vi, data = es2)
 
 mod_simple
 tf <- trimfill(mod_simple)
@@ -512,14 +495,13 @@ funnel(mod.egg)
 ###Decline effect #####
 #' [EJL Changed:]
 mod.mad <- rma.mv(yi = yi, V = vi,
-                          random = list(~1 | Study_ID / Obs_ID,
-                                        ~1 | Species, # phylo effect 
-                                        ~1 | Species2), 
-                          data =  es,
+                  random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                  # ~1 | Species, # phylo effect 
+                  # ~1 | Species2),  
+                  data =  es2,
                           mods = ~ Year,
                           test = "t",
-                          sparse = TRUE,
-                          R = list(Species = cor1))
+                          sparse = TRUE)
 
 
 summary(mod.mad) # no effect
@@ -607,24 +589,21 @@ leaveoneout
 
 ###Sens analysis for lncvr####
 
-sens.es <- filter(es, Mean_control > 0)
+sens.es <- filter(es2, Mean_control > 0)
 
 sens.es <- filter(sens.es, Mean_exp > 0)
 
+sens.es <- filter(sens.es, Can_be_negitive != "Yes")
+
 sens.es$Obs_ID <- factor(1:nrow(sens.es))
 
-vcv_sens.es <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
-                data = sens.es) 
-
-mod.behav.sens <- rma.mv(yi = yi, V = vcv_sens.es,
-                    random = list(~1 | Study_ID,
-                                  ~1 | Species, # phylo effect 
-                                  ~1 | Species2, # non-phylo effect 
-                                  ~1 | Obs_ID), 
+mod.behav.sens <- rma.mv(yi = yi, V = vi,
+                         random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                         # ~1 | Species, # phylo effect 
+                         # ~1 | Species2),  
                     data =  sens.es,
                     test = "t",
-                    sparse = TRUE,
-                    R = list(Species = cor1))
+                    sparse = TRUE)
 
 summary(mod.behav.sens)
 
@@ -640,10 +619,7 @@ cv <- filter(cv, Mean_exp > 0)
 
 #remove methods where a value could be negative 
 
-cv <- filter(cv, Metric != "PCA values")
-
-#list of studies/ sizes that should be dropped
-
+cv <- filter(cv, Can_be_negitive != "Yes")
 
 
 # Calculate lncvr
@@ -670,11 +646,33 @@ mod.overall_cv <- rma.mv(yi = yi, V = vi,
                          data =  cv,
                          # control = list(optimizer="BFGS"),
                          test = "t",
-                         sparse = TRUE,
-                         R = list(Species = cor1))
+                         sparse = TRUE)
+
+mod.overall_cv2 <- rma.mv(yi = yi, V = vcv_cv,
+                       random = list(~1 | Study_ID,
+                                     ~1 | Species, # phylo effect 
+                                     ~1 | Species2, # non-phylo effect 
+                                     ~1 | Obs_ID), 
+                       data =  cv,
+                       test = "t",
+                       sparse = TRUE,
+                       R = list(Species = cor1))
+
+AIC(mod.overall_cv, mod.overall_cv2)
+
+mod.overall_cv3 <- rma.mv(yi = yi, V = vi,
+                         random = list(~1 | Study_ID / Obs_ID,
+                                       ~1 | Species2), 
+                         data =  cv,
+                         test = "t",
+                         sparse = TRUE)
+
+AIC(mod.overall_cv, mod.overall_cv3)
+
+# Copy best model:
+mod.overall_cv <- mod.overall_cv3
 
 summary(mod.overall_cv)
-
 
 
 overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking (lnCVR)", group = "Study_ID",
@@ -685,50 +683,46 @@ overall_cv
 
 #CV_ behaviour type####
 
-mod.behav_cv <- rma.mv(yi = yi, V = vcv_cv,
-                       random = list(~1 | Study_ID,
-                                     ~1 | Species, # phylo effect 
-                                     ~1 | Species2, # non-phylo effect 
-                                     ~1 | Obs_ID), 
+cv$Behaviour_type <- factor(
+  cv$Behaviour_type,
+  levels = sort(unique(cv$Behaviour_type), decreasing = TRUE)
+)
+
+mod.behav_cv <- rma.mv(yi = yi, V = vi,
+                       random = list(~1 | Study_ID / Obs_ID,
+                                     ~1 | Species2), 
                        data =  cv,
                        mods = ~ Behaviour_type -1,
                        test = "t",
-                       sparse = TRUE,
-                       R = list(Species = cor1))
+                       sparse = TRUE)
 
 summary(mod.behav_cv)
 
+behav.cv <- orchard_plot(mod.behav_cv, mod = "Behaviour_type", 
+                      xlab = "Heterogeneity in risk-taking behaviour (lnCVR)", 
+                      group = "Study_ID",
+                      angle = 0) 
+
+behav.cv <- behav.cv +
+  scale_fill_manual(values = rep("#989aae", 7)) +
+  scale_color_manual(values = rep("#989aae", 7))
+behav.cv
 
 ###CV_ Sex######
 
 ses_cv <- filter(cv, Sex != "N/A")
 
-vcv_ses_cv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
-                    data = ses_cv)
 
-
-mod.sex.cv <- rma.mv(yi = yi, V = vcv_ses_cv,
-                     random = list(~1 | Study_ID,
-                                   ~1 | Species, # phylo effect 
-                                   ~1 | Species2, # non-phylo effect 
-                                   ~1 | Obs_ID), 
+mod.sex.cv <- rma.mv(yi = yi, V = vi,
+                   random = list(~1 | Study_ID / Obs_ID,
+                                 ~1 | Species2), 
                      data =  ses_cv,
                      mods = ~ Sex -1,
                      test = "t",
-                     sparse = TRUE,
-                     R = list(Species = cor1))
+                     sparse = TRUE)
 
 summary(mod.sex.cv) 
 
-cvcolour <- c("#989aae","#989aae","#989aae")
-
-s.cv <- orchard_plot(mod.sex.cv, xlab = "Heterogeneity in risk-taking (Hedge's g)", group = "Study_ID", mod = "Sex",
-                     angle = 0) +
-  scale_fill_manual(values = cvcolour) +
-  scale_colour_manual(values = cvcolour)
-
-
-s.cv
 
 ###CV_real vs sim#######
 
@@ -737,11 +731,9 @@ cv$Real_predator <- as.factor(cv$Real_predator)
 str(cv)
 
 
-mod.rp.cv <- rma.mv(yi = yi, V = vcv_cv,
-                    random = list(~1 | Study_ID,
-                                  ~1 | Species, # phylo effect 
-                                  ~1 | Species2, # non-phylo effect 
-                                  ~1 | Obs_ID), 
+mod.rp.cv <- rma.mv(yi = yi, V = vi,
+                    random = list(~1 | Study_ID / Obs_ID,
+                                  ~1 | Species2), 
                     data =  cv,
                     mods = ~ Real_predator -1,
                     test = "t",
@@ -754,16 +746,13 @@ summary(mod.rp.cv)
 
 ###CV low vs no predator#####
 
-mod.ln.cv <- rma.mv(yi = yi, V = vcv_cv,
-                    random = list(~1 | Study_ID,
-                                  ~1 | Species, # phylo effect 
-                                  ~1 | Species2, # non-phylo effect 
-                                  ~1 | Obs_ID), 
+mod.ln.cv <- rma.mv(yi = yi, V = vi,
+                    random = list(~1 | Study_ID / Obs_ID,
+                                  ~1 | Species2), 
                     data =  cv,
                     mods = ~ Low_or_no_pred -1,
                     test = "t",
-                    sparse = TRUE,
-                    R = list(Species = cor1))
+                    sparse = TRUE)
 
 summary(mod.ln.cv)
 
@@ -772,16 +761,13 @@ summary(mod.ln.cv)
 cv$Adult <- factor(cv$Adult, 
                    levels = c("Adult", "Juvenille", "Both"))
 
-mod.aj.cv <- rma.mv(yi = yi, V = vcv_cv,
-                    random = list(~1 | Study_ID,
-                                  ~1 | Species, # phylo effect 
-                                  ~1 | Species2, # non-phylo effect 
-                                  ~1 | Obs_ID), 
+mod.aj.cv <- rma.mv(yi = yi, V = vi,
+                    random = list(~1 | Study_ID / Obs_ID,
+                                  ~1 | Species2), 
                     data =  cv,
                     mods = ~ Adult -1,
                     test = "t",
-                    sparse = TRUE,
-                    R = list(Species = cor1))
+                    sparse = TRUE)
 
 summary(mod.aj.cv)
 
@@ -795,40 +781,56 @@ aj.cv
 
 ###CV_comp type#######
 
-mod.com.cv <- rma.mv(yi = yi, V = vcv_cv,
-                     random = list(~1 | Study_ID,
-                                   ~1 | Species, # phylo effect 
-                                   ~1 | Species2, # non-phylo effect 
-                                   ~1 | Obs_ID), 
+mod.com.cv <- rma.mv(yi = yi, V = vi,
+                     random = list(~1 | Study_ID / Obs_ID,
+                                   ~1 | Species2), 
                      data =  cv,
                      mods = ~ Comparison_type -1,
                      test = "t",
-                     sparse = TRUE,
-                     R = list(Species = cor1))
+                     sparse = TRUE)
 
 summary(mod.com.cv)
 
 ###CV_class######
 
-mod.class.cv <- rma.mv(yi = yi, V = vcv_cv,
-                       random = list(~1 | Study_ID,
-                                     ~1 | Species, # phylo effect 
-                                     ~1 | Species2, # non-phylo effect 
-                                     ~1 | Obs_ID), 
+cv <- cv %>%
+  mutate(Class = recode(Class,
+                        "Actinopterygii" = "Ray-finned fishes",
+                        "Amphibia" = "Amphibians",
+                        "Mammalia" = "Mammals",
+                        "Reptilia" = "Reptiles",
+                        "Malacostraca" = "Crustaceans",
+                        "Chondrichthyes" = "Cartilaginous fishes",
+                        "Aves" = "Birds"
+  ))
+
+
+
+cv$Class <- factor(
+  cv$Class,
+  levels = sort(unique(cv$Class), decreasing = TRUE)
+)
+
+mod.class.cv <- rma.mv(yi = yi, V = vi,
+                       random = list(~1 | Study_ID / Obs_ID,
+                                     ~1 | Species2), 
                        data =  cv,
                        mods = ~ Class -1,
                        test = "t",
-                       sparse = TRUE,
-                       R = list(Species = cor1))
+                       sparse = TRUE)
 
 summary(mod.class.cv)
 
+class.cv <- orchard_plot(mod.class.cv, mod = "Class", xlab = "Heterogeneity in risk-taking (lnCVR)", group = "Study_ID",
+                      angle = 0) + 
+  scale_fill_manual(values = rep("#989aae", 7)) +
+  scale_color_manual(values = rep("#989aae", 7))
+class.cv  
+
 ###predator pressure.cv######
-mod.pp.cv <- rma.mv(yi = yi, V = vcv_cv,
-                    random = list(~1 | Study_ID,
-                                  ~1 | Species, # phylo effect 
-                                  ~1 | Species2, # non-phylo effect 
-                                  ~1 | Obs_ID), 
+mod.pp.cv <- rma.mv(yi = yi, V = vi,
+                    random = list(~1 | Study_ID / Obs_ID,
+                                  ~1 | Species2), 
                     data =  cv,
                     mods = ~ Predation_pressure -1,
                     test = "t",
@@ -876,7 +878,9 @@ mod8 <- coef(summary(mod.rp))
 
 mod9 <- coef(summary(mod.com))
 
-table1 <- rbind(mod1, mod2, mod3, mod4, mod5, mod6, mod7, mod8, mod9)
+mod10 <- coef(summary(mod.behav.sens))
+
+table1 <- rbind(mod1, mod2, mod3, mod4, mod5, mod6, mod7, mod8, mod9, mod10)
 
 
 table1$term <- rownames(table1)
@@ -896,17 +900,19 @@ mod5.cv <- coef(summary(mod.rp.cv))
 
 mod6.cv <- coef(summary(mod.ln.cv))
 
+mod7.cv <- coef(summary(mod.aj.cv))
+
 mod8.cv <- coef(summary(mod.com.cv))
 
 mod9.cv <- coef(summary(mod.pp.cv))
 
-table2 <- rbind(mod1.cv, mod2.cv, mod3.cv, mod4.cv, mod5.cv, mod6.cv, mod7.cv, mod8.cv, mod9.cv)
+table2 <- rbind(mod1.cv, mod2.cv, mod3.cv, mod4.cv, mod5.cv, mod6.cv, mod8.cv, mod9.cv)
 
 table2$term <- rownames(table2)
 
-write.csv(table1, "Figures/Sup_table1.csv")
+write.csv(table1, "Sup_table1.csv")
 
-write.csv(table2, "Figures/Sup_table2.csv")
+write.csv(table2, "Sup_table2.csv")
 
 ###END##### 
 
