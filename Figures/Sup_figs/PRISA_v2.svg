@@ -27,13 +27,13 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="1.2939051"
-     inkscape:cx="374.44787"
-     inkscape:cy="261.99758"
-     inkscape:window-width="1920"
-     inkscape:window-height="1027"
-     inkscape:window-x="1512"
+     inkscape:cx="374.83429"
+     inkscape:cy="526.31371"
+     inkscape:window-width="1200"
+     inkscape:window-height="969"
+     inkscape:window-x="2232"
      inkscape:window-y="25"
-     inkscape:window-maximized="1"
+     inkscape:window-maximized="0"
      inkscape:current-layer="layer1"
      inkscape:export-bgcolor="#ffffffff" />
   <defs
@@ -571,7 +571,7 @@
          y="156.05469"
          style="font-size:2.82222px;stroke-width:0.264583"
          sodipodi:role="line"
-         id="tspan10-8">n = 56</tspan></text>
+         id="tspan10-8">n = 55</tspan></text>
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.183902"
        id="rect1-4-8-4-8-4-1"
@@ -595,7 +595,7 @@
          y="184.14156"
          style="font-size:2.82222px;stroke-width:0.264583"
          sodipodi:role="line"
-         id="tspan10-8-7">n = 56</tspan></text>
+         id="tspan10-8-7">n = 55</tspan></text>
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.235243"
        id="rect1-4-8-4-8-4-1-6"

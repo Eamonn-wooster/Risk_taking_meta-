@@ -195,7 +195,7 @@ es2 <- rbind(es_inv, es_not)
 # Variance covariance matrix
 
 vcv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
-             data = es) 
+             data = es2) 
 
 
 mod.overall.vcv <- rma.mv(yi = yi, V = vcv, #vcv, #' [EJL changed]
@@ -217,7 +217,7 @@ mod.overall <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
                                            ~1 | Species, # phylo effect 
                                            ~1 | Species2#, # non-phylo effect 
                                            ), #' [EJL changed]
-                             data =  es,
+                             data =  es2,
                              # control = list(optimizer="BFGS"),
                              test = "t",
                              sparse = TRUE,
@@ -251,7 +251,7 @@ mod.overall.simple2 <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
                                             #~1 | Species, # phylo effect 
                                             #~1 | Species2#, # non-phylo effect 
                               ), #' [EJL changed]
-                              data =  es,
+                              data =  es2,
                               # control = list(optimizer="BFGS"),
                               test = "t",
                               sparse = TRUE)
@@ -282,7 +282,7 @@ overall <- overall + scale_fill_manual(values = "#eea196") + scale_color_manual(
 
 overall
 
-ggsave(here("Outputs", "Figures", "Overall.pdf"), width = 6, height = 4)
+# ggsave(here("Outputs", "Figures", "Overall.pdf"), width = 6, height = 4)
 
 #This is the hetrogeneity of the effect sizes - we need to report this in the manuscript 
 
@@ -737,8 +737,7 @@ mod.rp.cv <- rma.mv(yi = yi, V = vi,
                     data =  cv,
                     mods = ~ Real_predator -1,
                     test = "t",
-                    sparse = TRUE,
-                    R = list(Species = cor1))
+                    sparse = TRUE)
 
 summary(mod.rp.cv)
 
@@ -771,12 +770,6 @@ mod.aj.cv <- rma.mv(yi = yi, V = vi,
 
 summary(mod.aj.cv)
 
-aj.cv <- orchard_plot(mod.aj.cv, xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID", mod = "Adult",
-                      angle = 0) +
-  scale_fill_manual(values = cvcolour) +
-  scale_colour_manual(values = cvcolour)
-
-aj.cv
 
 
 ###CV_comp type#######
@@ -851,9 +844,20 @@ Fig1 <- plot_grid(overall, overall_cv, labels = c("A", "B"), label_size = 12)
 
 Fig1
 
-Fig4 <- plot_grid(s, s.cv, aj,  aj.cv, labels = c("A", "B", "C", "D"), label_size = 12)
+ggsave(here("Figures", "Fig1v2.pdf"), width = 10, height = 6)
 
-Fig4
+Fig2 <- plot_grid(behav, behav.cv, labels = c("A", "B"), label_size = 12)
+
+Fig2
+
+ggsave(here("Figures", "Fig2v2.pdf"), width = 8, height = 6)
+
+Fig3 <- plot_grid(class, class.cv, labels = c("A", "B"), label_size = 12)
+
+Fig3
+
+ggsave(here("Figures", "Fig3v2.pdf"), width = 8, height = 6)
+
 
 
 ###Tables#######
@@ -906,7 +910,7 @@ mod8.cv <- coef(summary(mod.com.cv))
 
 mod9.cv <- coef(summary(mod.pp.cv))
 
-table2 <- rbind(mod1.cv, mod2.cv, mod3.cv, mod4.cv, mod5.cv, mod6.cv, mod8.cv, mod9.cv)
+table2 <- rbind(mod1.cv, mod2.cv, mod3.cv, mod4.cv, mod5.cv, mod6.cv, mod7.cv, mod8.cv, mod9.cv)
 
 table2$term <- rownames(table2)
 
