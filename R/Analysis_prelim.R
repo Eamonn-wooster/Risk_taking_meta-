@@ -282,7 +282,53 @@ overall <- overall + scale_fill_manual(values = "#eea196") + scale_color_manual(
 
 overall
 
-# ggsave(here("Outputs", "Figures", "Overall.pdf"), width = 6, height = 4)
+#forest
+
+plot_dat <- es2 %>%
+  mutate(
+    se = sqrt(vi),
+    lower = yi - 1.96 * se,
+    upper = yi + 1.96 * se
+  ) %>%
+  arrange(yi) %>%
+  mutate(order = row_number())
+
+# Overall pooled estimate
+overall_est <- predict(mod.overall)
+print(overall_est)   # confirm pred/ci.lb/ci.ub are single values, not a vector
+
+overall_dat <- data.frame(
+  yi = overall_est$pred[1],
+  lower = overall_est$ci.lb[1],
+  upper = overall_est$ci.ub[1],
+  order = 0
+)
+
+forest <- ggplot() +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50") +
+  # individual effect sizes
+  geom_segment(data = plot_dat, aes(y = order, yend = order, x = lower, xend = upper),
+               colour = "#eea196", alpha = 0.5) +
+  geom_point(data = plot_dat, aes(x = yi, y = order),
+             size = 1.8, colour = "#eea196") +
+  # overall estimate as a diamond
+  geom_segment(data = overall_dat, aes(y = order, yend = order, x = lower, xend = upper),
+               colour = "#eea196", linewidth = 0.8) +
+  geom_point(data = overall_dat, aes(x = yi, y = order),
+             shape = 18, size = 4, colour = "#eea196") +
+  theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.position = "none"
+  )
+
+
+
+ggsave(here( "Figures", "Overall.pdf"), width = 6, height = 4)
 
 #This is the hetrogeneity of the effect sizes - we need to report this in the manuscript 
 
@@ -681,6 +727,53 @@ overall_cv <- overall_cv + scale_fill_manual(values = "#989aae") + scale_color_m
 
 overall_cv
 
+#Forest
+
+plot_dat.cv <- cv %>%
+  mutate(
+    se = sqrt(vi),
+    lower = yi - 1.96 * se,
+    upper = yi + 1.96 * se
+  ) %>%
+  arrange(yi) %>%
+  mutate(order = row_number())
+
+# Overall pooled estimate
+overall_est.cv <- predict(mod.overall_cv)
+print(overall_est.cv)   # confirm pred/ci.lb/ci.ub are single values, not a vector
+
+overall_dat.cv <- data.frame(
+  yi = overall_est.cv$pred[1],
+  lower = overall_est.cv$ci.lb[1],
+  upper = overall_est.cv$ci.ub[1],
+  order = 0
+)
+
+forest.cv <- ggplot() +
+  geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50") +
+  # individual effect sizes
+  geom_segment(data = plot_dat.cv, aes(y = order, yend = order, x = lower, xend = upper),
+               colour = "#989aae", alpha = 0.5) +
+  geom_point(data = plot_dat.cv, aes(x = yi, y = order),
+             size = 1.8, colour = "#989aae") +
+  # overall estimate as a diamond
+  geom_segment(data = overall_dat.cv, aes(y = order, yend = order, x = lower, xend = upper),
+               colour = "#989aae", linewidth = 0.8) +
+  geom_point(data = overall_dat.cv, aes(x = yi, y = order),
+             shape = 18, size = 4, colour = "#989aae") +
+  theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor = element_blank(),
+    legend.position = "none"
+  )
+
+forest.cv
+
+
 #CV_ behaviour type####
 
 cv$Behaviour_type <- factor(
@@ -838,7 +931,9 @@ summary(mod.pp.cv)
 
 #put overall and overall_cv together using cowplot
 
+forest_figs <- plot_grid(forest, forest.cv, labels = c("A", "B"), label_size = 12, align = "h")
 
+forest_figs
 
 Fig1 <- plot_grid(overall, overall_cv, labels = c("A", "B"), label_size = 12)
 
