@@ -326,7 +326,7 @@ forest <- ggplot() +
     legend.position = "none"
   )
 
-
+forest
 
 ggsave(here( "Figures", "Overall.pdf"), width = 6, height = 4)
 
