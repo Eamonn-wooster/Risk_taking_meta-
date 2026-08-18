@@ -313,9 +313,9 @@ forest <- ggplot() +
              size = 1.8, colour = "#eea196") +
   # overall estimate as a diamond
   geom_segment(data = overall_dat, aes(y = order, yend = order, x = lower, xend = upper),
-               colour = "#eea196", linewidth = 0.8) +
+               colour = "#eea196", linewidth = 1) +
   geom_point(data = overall_dat, aes(x = yi, y = order),
-             shape = 18, size = 4, colour = "#eea196") +
+             shape = 18, size = 5, colour = "#eea196") +
   theme_minimal() +
   theme(
     axis.title = element_blank(),
@@ -706,6 +706,7 @@ mod.overall_cv2 <- rma.mv(yi = yi, V = vcv_cv,
 
 AIC(mod.overall_cv, mod.overall_cv2)
 
+#best model 
 mod.overall_cv3 <- rma.mv(yi = yi, V = vi,
                          random = list(~1 | Study_ID / Obs_ID,
                                        ~1 | Species2), 
@@ -758,9 +759,9 @@ forest.cv <- ggplot() +
              size = 1.8, colour = "#989aae") +
   # overall estimate as a diamond
   geom_segment(data = overall_dat.cv, aes(y = order, yend = order, x = lower, xend = upper),
-               colour = "#989aae", linewidth = 0.8) +
+               colour = "#989aae", linewidth = 1) +
   geom_point(data = overall_dat.cv, aes(x = yi, y = order),
-             shape = 18, size = 4, colour = "#989aae") +
+             shape = 18, size = 5, colour = "#989aae") +
   theme_minimal() +
   theme(
     axis.title = element_blank(),
@@ -931,7 +932,7 @@ summary(mod.pp.cv)
 
 #put overall and overall_cv together using cowplot
 
-forest_figs <- plot_grid(forest, forest.cv, labels = c("A", "B"), label_size = 12, align = "h")
+forest_figs <- plot_grid(forest, forest.cv, labels = c("A", "B"), label_size = 12, align = "v", nrow = 2)
 
 forest_figs
 
