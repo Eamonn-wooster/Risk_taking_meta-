@@ -192,13 +192,8 @@ es2 <- rbind(es_inv, es_not)
 
 ################################## Hedges Models ##################################
 
-# Variance covariance matrix
 
-vcv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
-             data = es2) 
-
-
-mod.overall.vcv <- rma.mv(yi = yi, V = vcv, #vcv, #' [EJL changed]
+mod.overall.vcv <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
                       random = list(#~1 | Study_ID / Obs_ID, #' [EJL changed]
                                     ~1 | Species, # phylo effect 
                                     ~1 | Species2#, # non-phylo effect 
@@ -257,13 +252,13 @@ mod.overall.simple2 <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
                               sparse = TRUE)
 
 summary(mod.overall.simple2)
-# Identical, but slightly smaller, so i guess either way haha
+
 AIC(mod.overall.simple1, mod.overall.simple2)
-# Improved slightly.
+
 
 
 # Copy best model:
-mod.overall <- mod.overall.simple2
+mod.overall <- mod.overall.simple1
 
 # >>> Final model summaries/plot ---------------------------------------------------------
 
@@ -317,8 +312,9 @@ forest <- ggplot() +
   geom_point(data = overall_dat, aes(x = yi, y = order),
              shape = 18, size = 5, colour = "#eea196") +
   theme_minimal() +
+  xlab("Difference in risk-taking (Hedge's g)") +
   theme(
-    axis.title = element_blank(),
+    axis.title.y = element_blank(),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
     panel.grid.major.y = element_blank(),
@@ -345,7 +341,10 @@ es2$Behaviour_type <- factor(
 
 
 mod.behav <- rma.mv(yi = yi, V = vi,
-                      random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                      random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                                    #~1 | Species, # phylo effect 
+                                    ~1 | Species2#, # non-phylo effect 
+                      ), #' [EJL Change]
                                     # ~1 | Species, # phylo effect 
                                     # ~1 | Species2), 
                       data =  es2,
@@ -374,7 +373,10 @@ behav
 ses <- filter(es2, Sex != "N/A")
 
 mod.sex <- rma.mv(yi = yi, V = vi,
-                  random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                  random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                                #~1 | Species, # phylo effect 
+                                ~1 | Species2#, # non-phylo effect 
+                  ), #' [EJL Change]
                   # ~1 | Species, # phylo effect 
                   # ~1 | Species2),
                     data =  ses,
@@ -389,7 +391,10 @@ summary(mod.sex)
 #Pred_pressure#######
 
 mod.pp <- rma.mv(yi = yi, V = vi,
-                 random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                 random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                               #~1 | Species, # phylo effect 
+                               ~1 | Species2#, # non-phylo effect 
+                 ), #' [EJL Change]
                  # ~1 | Species, # phylo effect 
                  # ~1 | Species2),
                   data =  es2,
@@ -398,6 +403,15 @@ mod.pp <- rma.mv(yi = yi, V = vi,
                   sparse = TRUE)
 
 summary(mod.pp)
+
+pp <- orchard_plot(mod.pp, mod = "Predation_pressure", 
+                      xlab = "Difference in risk-taking behaviour (Hedge's g)", 
+                      group = "Study_ID",
+                      angle = 0) +
+  scale_fill_manual(values = rep("#eea196", 7)) +
+  scale_color_manual(values = rep("#eea196", 7))
+
+pp
 
 
 #real vs simulated pred#######
@@ -408,7 +422,10 @@ str(es2)
 
 
 mod.rp <- rma.mv(yi = yi, V = vi,
-                 random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                 random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                               #~1 | Species, # phylo effect 
+                               ~1 | Species2#, # non-phylo effect 
+                 ), #' [EJL Change]
                  # ~1 | Species, # phylo effect 
                  # ~1 | Species2), 
                  data =  es2, 
@@ -418,12 +435,24 @@ mod.rp <- rma.mv(yi = yi, V = vi,
 
 summary(mod.rp)
 
-anova(mod.rp, L = c(1, -1))
+anova(mod.rp, L = c(1, -1))#different but big SS differences
+
+rp <- orchard_plot(mod.rp, mod = "Real_predator", 
+                   xlab = "Difference in risk-taking behaviour (Hedge's g)", 
+                   group = "Study_ID",
+                   angle = 0) +
+  scale_fill_manual(values = rep("#eea196", 7)) +
+  scale_color_manual(values = rep("#eea196", 7))
+
+rp
 
 ###low vs no predator######
 
 mod.ln <- rma.mv(yi = yi, V = vi,
-                 random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                 random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                               #~1 | Species, # phylo effect 
+                               ~1 | Species2#, # non-phylo effect 
+                 ), #' [EJL Change]
                  # ~1 | Species, # phylo effect 
                  # ~1 | Species2), 
                  data =  es2, 
@@ -433,13 +462,25 @@ mod.ln <- rma.mv(yi = yi, V = vi,
 
 summary(mod.ln)
 
+ln <- orchard_plot(mod.ln, mod = "Low_or_no_pred", 
+                   xlab = "Difference in risk-taking behaviour (Hedge's g)", 
+                   group = "Study_ID",
+                   angle = 0) +
+  scale_fill_manual(values = rep("#eea196", 7)) +
+  scale_color_manual(values = rep("#eea196", 7))
+
+ln
+
 ###adult vs juvenille#####
 
 es2$Adult <- factor(es2$Adult, 
                               levels = c("Adult", "Juvenille", "Both"))
 
 mod.aj <- rma.mv(yi = yi, V = vi,
-                 random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                 random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                               #~1 | Species, # phylo effect 
+                               ~1 | Species2#, # non-phylo effect 
+                 ), #' [EJL Change]
                  # ~1 | Species, # phylo effect 
                  # ~1 | Species2), 
                  data =  es2, 
@@ -452,7 +493,10 @@ summary(mod.aj)
 ###comp type######
 
 mod.com <- rma.mv(yi = yi, V = vi,
-                  random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                  random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                                #~1 | Species, # phylo effect 
+                                ~1 | Species2#, # non-phylo effect 
+                  ), #' [EJL Change]
                   # ~1 | Species, # phylo effect 
                   # ~1 | Species2), 
                   data =  es2, 
@@ -461,6 +505,15 @@ mod.com <- rma.mv(yi = yi, V = vi,
                  sparse = TRUE)
 
 summary(mod.com)
+
+ct <- orchard_plot(mod.com, mod = "Comparison_type", 
+                   xlab = "Difference in risk-taking behaviour (Hedge's g)", 
+                   group = "Study_ID",
+                   angle = 0) +
+  scale_fill_manual(values = rep("#eea196", 7)) +
+  scale_color_manual(values = rep("#eea196", 7))
+
+ct
 
 ###Class##########
 
@@ -485,7 +538,10 @@ es2$Class <- factor(
 
 
 mod.class <- rma.mv(yi = yi, V = vi,
-                    random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                    random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                                  #~1 | Species, # phylo effect 
+                                  ~1 | Species2#, # non-phylo effect 
+                    ), #' [EJL Change]
                     # ~1 | Species, # phylo effect 
                     # ~1 | Species2),  
                   data =  es2,
@@ -512,7 +568,10 @@ es2$sqeffectN <- sqrt(es2$effectN)
 
 #' [EJL Changed:]
 mod.egg <- rma.mv(yi = yi, V = vi,
-                  random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                  random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                                #~1 | Species, # phylo effect 
+                                ~1 | Species2#, # non-phylo effect 
+                  ), #' [EJL Change]
                   # ~1 | Species, # phylo effect 
                   # ~1 | Species2),  
                   data =  es2,
@@ -541,7 +600,10 @@ funnel(mod.egg)
 ###Decline effect #####
 #' [EJL Changed:]
 mod.mad <- rma.mv(yi = yi, V = vi,
-                  random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                  random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                                #~1 | Species, # phylo effect 
+                                ~1 | Species2#, # non-phylo effect 
+                  ), #' [EJL Change]
                   # ~1 | Species, # phylo effect 
                   # ~1 | Species2),  
                   data =  es2,
@@ -644,7 +706,10 @@ sens.es <- filter(sens.es, Can_be_negitive != "Yes")
 sens.es$Obs_ID <- factor(1:nrow(sens.es))
 
 mod.behav.sens <- rma.mv(yi = yi, V = vi,
-                         random = list(~1 | Study_ID / Obs_ID), #' [EJL Change]
+                         random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                                       #~1 | Species, # phylo effect 
+                                       ~1 | Species2#, # non-phylo effect 
+                         ), #' [EJL Change]
                          # ~1 | Species, # phylo effect 
                          # ~1 | Species2),  
                     data =  sens.es,
@@ -683,10 +748,7 @@ cv <- escalc(
 
 cv$Obs_ID <- factor(1:nrow(cv))
 
-vcv_cv <- vcalc(vi, cluster = Study_ID, obs = Obs_ID, rho = 0.5, # rho is usually 0.5 or 0.8
-                data = cv) 
-
-
+#bestmodel
 mod.overall_cv <- rma.mv(yi = yi, V = vi,
                          random = list(~1 | Study_ID / Obs_ID), 
                          data =  cv,
@@ -694,11 +756,12 @@ mod.overall_cv <- rma.mv(yi = yi, V = vi,
                          test = "t",
                          sparse = TRUE)
 
-mod.overall_cv2 <- rma.mv(yi = yi, V = vcv_cv,
-                       random = list(~1 | Study_ID,
+#species is doing nothing, literally 0 needs to go
+mod.overall_cv2 <- rma.mv(yi = yi, V = vi,
+                       random = list(~1 | Study_ID / Obs_ID,
                                      ~1 | Species, # phylo effect 
-                                     ~1 | Species2, # non-phylo effect 
-                                     ~1 | Obs_ID), 
+                                     ~1 | Species2 # non-phylo effect 
+                                     ), 
                        data =  cv,
                        test = "t",
                        sparse = TRUE,
@@ -706,7 +769,6 @@ mod.overall_cv2 <- rma.mv(yi = yi, V = vcv_cv,
 
 AIC(mod.overall_cv, mod.overall_cv2)
 
-#best model 
 mod.overall_cv3 <- rma.mv(yi = yi, V = vi,
                          random = list(~1 | Study_ID / Obs_ID,
                                        ~1 | Species2), 
@@ -714,15 +776,20 @@ mod.overall_cv3 <- rma.mv(yi = yi, V = vi,
                          test = "t",
                          sparse = TRUE)
 
+
 AIC(mod.overall_cv, mod.overall_cv3)
 
-# Copy best model:
-mod.overall_cv <- mod.overall_cv3
+# Copy best model: simplest and adding species does nothing and has low sigma
+mod.overall_cv <- mod.overall_cv
 
 summary(mod.overall_cv)
 
+I2 = round(i2_ml(mod.overall_cv), 2)
 
-overall_cv <- orchard_plot(mod.overall_cv, xlab = "Heterogeneity in risk-taking (lnCVR)", group = "Study_ID",
+I2
+
+
+overall_cv <- orchard_plot(mod.overall_cv, xlab = "Difference in heterogeneity (lnCVR)", group = "Study_ID",
                            angle = 0)
 overall_cv <- overall_cv + scale_fill_manual(values = "#989aae") + scale_color_manual(values = "#989aae") 
 
@@ -763,8 +830,9 @@ forest.cv <- ggplot() +
   geom_point(data = overall_dat.cv, aes(x = yi, y = order),
              shape = 18, size = 5, colour = "#989aae") +
   theme_minimal() +
+  xlab("Difference in heterogeneity (lnCVR)") +
   theme(
-    axis.title = element_blank(),
+    axis.title.y = element_blank(),
     axis.text.y = element_blank(),
     axis.ticks.y = element_blank(),
     panel.grid.major.y = element_blank(),
@@ -783,8 +851,7 @@ cv$Behaviour_type <- factor(
 )
 
 mod.behav_cv <- rma.mv(yi = yi, V = vi,
-                       random = list(~1 | Study_ID / Obs_ID,
-                                     ~1 | Species2), 
+                       random = list(~1 | Study_ID / Obs_ID), 
                        data =  cv,
                        mods = ~ Behaviour_type -1,
                        test = "t",
@@ -793,7 +860,7 @@ mod.behav_cv <- rma.mv(yi = yi, V = vi,
 summary(mod.behav_cv)
 
 behav.cv <- orchard_plot(mod.behav_cv, mod = "Behaviour_type", 
-                      xlab = "Heterogeneity in risk-taking behaviour (lnCVR)", 
+                      xlab = "Difference in heterogeneity (lnCVR)", 
                       group = "Study_ID",
                       angle = 0) 
 
@@ -808,8 +875,7 @@ ses_cv <- filter(cv, Sex != "N/A")
 
 
 mod.sex.cv <- rma.mv(yi = yi, V = vi,
-                   random = list(~1 | Study_ID / Obs_ID,
-                                 ~1 | Species2), 
+                   random = list(~1 | Study_ID / Obs_ID), 
                      data =  ses_cv,
                      mods = ~ Sex -1,
                      test = "t",
@@ -826,8 +892,7 @@ str(cv)
 
 
 mod.rp.cv <- rma.mv(yi = yi, V = vi,
-                    random = list(~1 | Study_ID / Obs_ID,
-                                  ~1 | Species2), 
+                    random = list(~1 | Study_ID / Obs_ID), 
                     data =  cv,
                     mods = ~ Real_predator -1,
                     test = "t",
@@ -835,13 +900,21 @@ mod.rp.cv <- rma.mv(yi = yi, V = vi,
 
 summary(mod.rp.cv)
 
+rp.cv <- orchard_plot(mod.rp.cv, mod = "Real_predator", 
+                   xlab = "Difference in heterogeneity (lnCVR)", 
+                   group = "Study_ID",
+                   angle = 0) +
+  scale_fill_manual(values = rep("#989aae", 7)) +
+  scale_color_manual(values = rep("#989aae", 7))
+
+rp.cv
+
 #only real predators create heterogeneity in risk-taking behaviour.
 
 ###CV low vs no predator#####
 
 mod.ln.cv <- rma.mv(yi = yi, V = vi,
-                    random = list(~1 | Study_ID / Obs_ID,
-                                  ~1 | Species2), 
+                    random = list(~1 | Study_ID / Obs_ID), 
                     data =  cv,
                     mods = ~ Low_or_no_pred -1,
                     test = "t",
@@ -849,14 +922,24 @@ mod.ln.cv <- rma.mv(yi = yi, V = vi,
 
 summary(mod.ln.cv)
 
+anova(mod.ln.cv, L = c(1, -1)) #not difference from one another
+
+ln.cv <- orchard_plot(mod.ln.cv, mod = "Low_or_no_pred", 
+                      xlab = "Difference in heterogeneity (lnCVR)", 
+                      group = "Study_ID",
+                      angle = 0) +
+  scale_fill_manual(values = rep("#989aae", 7)) +
+  scale_color_manual(values = rep("#989aae", 7))
+
+ln.cv
+
 ###CV adult vs juvenille######
 
 cv$Adult <- factor(cv$Adult, 
                    levels = c("Adult", "Juvenille", "Both"))
 
 mod.aj.cv <- rma.mv(yi = yi, V = vi,
-                    random = list(~1 | Study_ID / Obs_ID,
-                                  ~1 | Species2), 
+                    random = list(~1 | Study_ID / Obs_ID), 
                     data =  cv,
                     mods = ~ Adult -1,
                     test = "t",
@@ -869,14 +952,24 @@ summary(mod.aj.cv)
 ###CV_comp type#######
 
 mod.com.cv <- rma.mv(yi = yi, V = vi,
-                     random = list(~1 | Study_ID / Obs_ID,
-                                   ~1 | Species2), 
+                     random = list(~1 | Study_ID / Obs_ID), 
                      data =  cv,
                      mods = ~ Comparison_type -1,
                      test = "t",
                      sparse = TRUE)
 
 summary(mod.com.cv)
+
+coef(mod.com.cv)
+
+anova(mod.com.cv, L = c(1, 0, -1)) #WW and CC not different from one another
+
+ct.cv <- orchard_plot(mod.com.cv, mod = "Comparison_type", 
+                      xlab = "Difference in heterogeneity (lnCVR)", 
+                      group = "Study_ID",
+                      angle = 0) +
+  scale_fill_manual(values = rep("#989aae", 7)) +
+  scale_color_manual(values = rep("#989aae", 7))
 
 ###CV_class######
 
@@ -899,8 +992,7 @@ cv$Class <- factor(
 )
 
 mod.class.cv <- rma.mv(yi = yi, V = vi,
-                       random = list(~1 | Study_ID / Obs_ID,
-                                     ~1 | Species2), 
+                       random = list(~1 | Study_ID / Obs_ID), 
                        data =  cv,
                        mods = ~ Class -1,
                        test = "t",
@@ -916,13 +1008,11 @@ class.cv
 
 ###predator pressure.cv######
 mod.pp.cv <- rma.mv(yi = yi, V = vi,
-                    random = list(~1 | Study_ID / Obs_ID,
-                                  ~1 | Species2), 
+                    random = list(~1 | Study_ID / Obs_ID), 
                     data =  cv,
                     mods = ~ Predation_pressure -1,
                     test = "t",
-                    sparse = TRUE,
-                    R = list(Species = cor1))
+                    sparse = TRUE)
 
 summary(mod.pp.cv)
 
@@ -930,31 +1020,42 @@ summary(mod.pp.cv)
 
 ###figures #######
 
-#put overall and overall_cv together using cowplot
+#put overall and overall_cv together using 
 
-forest_figs <- plot_grid(forest, forest.cv, labels = c("A", "B"), label_size = 12, align = "v", nrow = 2)
+library(scales)
+
+forest.cv <- forest.cv +
+  scale_x_continuous(limits = c(-5, 10), breaks = seq(-5, 10, by = 1))
+
+
+forest <- forest +
+  scale_x_continuous(limits = c(-5, 10), breaks = seq(-5, 10, by = 1))
+
+forest_figs <- (forest / forest.cv) +
+  plot_annotation(tag_levels = "A")
 
 forest_figs
 
-Fig1 <- plot_grid(overall, overall_cv, labels = c("A", "B"), label_size = 12)
 
-Fig1
-
-ggsave(here("Figures", "Fig1v2.pdf"), width = 10, height = 6)
+ggsave(here("Figures", "Forestv1.pdf"), width = 10, height = 6)
 
 Fig2 <- plot_grid(behav, behav.cv, labels = c("A", "B"), label_size = 12)
 
 Fig2
 
-ggsave(here("Figures", "Fig2v2.pdf"), width = 8, height = 6)
+ggsave(here("Figures", "Fig2v3.pdf"), width = 8, height = 6)
 
 Fig3 <- plot_grid(class, class.cv, labels = c("A", "B"), label_size = 12)
 
 Fig3
 
-ggsave(here("Figures", "Fig3v2.pdf"), width = 8, height = 6)
+ggsave(here("Figures", "Fig3v3.pdf"), width = 8, height = 6)
 
 
+Fig4 <- plot_grid(rp, rp.cv, ln, ln.cv, ct, ct.cv, labels = c("A", "B", "C", "D", "E", "F"), label_size = 12, nrow = 3,align = "hv",    
+                  axis = "tblr")
+
+Fig4
 
 ###Tables#######
 
@@ -968,7 +1069,7 @@ mod3 <- coef(summary(mod.sex))
 
 mod4 <- coef(summary(mod.class))
 
-mod5 <- coef(summary(mod.pp))
+# mod5 <- coef(summary(mod.pp))
 
 mod6 <- coef(summary(mod.ln))
 
@@ -980,7 +1081,7 @@ mod9 <- coef(summary(mod.com))
 
 mod10 <- coef(summary(mod.behav.sens))
 
-table1 <- rbind(mod1, mod2, mod3, mod4, mod5, mod6, mod7, mod8, mod9, mod10)
+table1 <- rbind(mod1, mod2, mod3, mod4, mod6, mod7, mod8, mod9, mod10)
 
 
 table1$term <- rownames(table1)
@@ -1004,9 +1105,9 @@ mod7.cv <- coef(summary(mod.aj.cv))
 
 mod8.cv <- coef(summary(mod.com.cv))
 
-mod9.cv <- coef(summary(mod.pp.cv))
+# mod9.cv <- coef(summary(mod.pp.cv))
 
-table2 <- rbind(mod1.cv, mod2.cv, mod3.cv, mod4.cv, mod5.cv, mod6.cv, mod7.cv, mod8.cv, mod9.cv)
+table2 <- rbind(mod1.cv, mod2.cv, mod3.cv, mod4.cv, mod5.cv, mod6.cv, mod7.cv, mod8.cv)
 
 table2$term <- rownames(table2)
 
