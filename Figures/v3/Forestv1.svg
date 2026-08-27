@@ -5966,12 +5966,12 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="1.0563111"
-     inkscape:cx="225.31241"
-     inkscape:cy="381.51639"
-     inkscape:window-width="1920"
-     inkscape:window-height="969"
-     inkscape:window-x="1512"
-     inkscape:window-y="25"
+     inkscape:cx="225.78576"
+     inkscape:cy="381.04305"
+     inkscape:window-width="1512"
+     inkscape:window-height="858"
+     inkscape:window-x="0"
+     inkscape:window-y="38"
      inkscape:window-maximized="1"
      inkscape:current-layer="g1"
      inkscape:export-bgcolor="#ffffffff">
@@ -8702,14 +8702,14 @@
     <text
        id="text925"
        xml:space="preserve"
-       x="125.27226"
+       x="141.27226"
        y="277.46667"
        style="font-size:16px;stroke-width:1.33333"><tspan
          id="tspan925"
          style="font-variant:normal;font-weight:bold;font-size:14.6667px;font-family:Helvetica;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none;stroke-width:1.33333"
-         x="125.27226"
+         x="141.27226"
          dx="0 0 0 0 -0.44 0 0 0 0 0 0 0 0 0 0 0.22"
-         y="277.46667">Difference in risk−taking (Hedge's g)</tspan></text>
+         y="277.46667">Difference in risk−taking (SMDH)</tspan></text>
     <text
        id="text926"
        xml:space="preserve"

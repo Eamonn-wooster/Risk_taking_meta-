@@ -1,6 +1,6 @@
-################### Hedges g effect size #####################
+################### Risk-taking meta-analysis #####################
 
-
+# Authors: EIF Wooster & EJL Lundgren 2026
 
 
 ######################### Set Up & Reading in Data ##############################
@@ -267,7 +267,7 @@ I2 = round(i2_ml(mod.overall), 2)
 
 I2
 
-overall <- orchard_plot(mod.overall, xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID",
+overall <- orchard_plot(mod.overall, xlab = "Difference in risk-taking (SMDH)", group = "Study_ID",
                         angle = 0, col = "#eea196")
 #' [EJL] This produced an error for me:
 # Error in if (colour) as.factor(data_trim$stdy) else data_trim$moderator : 
@@ -312,7 +312,7 @@ forest <- ggplot() +
   geom_point(data = overall_dat, aes(x = yi, y = order),
              shape = 18, size = 5, colour = "#eea196") +
   theme_minimal() +
-  xlab("Difference in risk-taking (Hedge's g)") +
+  xlab("Difference in risk-taking (SMDH)") +
   theme(
     axis.title.y = element_blank(),
     axis.text.y = element_blank(),
@@ -358,7 +358,7 @@ summary(mod.behav)
 
 
 behav <- orchard_plot(mod.behav, mod = "Behaviour_type", 
-                      xlab = "Difference in risk-taking behaviour (Hedge's g)", 
+                      xlab = "Difference in risk-taking behaviour (SMDH)", 
                       group = "Study_ID",
                       angle = 0) +
   scale_fill_manual(values = rep("#eea196", 7)) +
@@ -405,7 +405,7 @@ mod.pp <- rma.mv(yi = yi, V = vi,
 summary(mod.pp)
 
 pp <- orchard_plot(mod.pp, mod = "Predation_pressure", 
-                      xlab = "Difference in risk-taking behaviour (Hedge's g)", 
+                      xlab = "Difference in risk-taking behaviour (SMDH)", 
                       group = "Study_ID",
                       angle = 0) +
   scale_fill_manual(values = rep("#eea196", 7)) +
@@ -438,7 +438,7 @@ summary(mod.rp)
 anova(mod.rp, L = c(1, -1))#different but big SS differences
 
 rp <- orchard_plot(mod.rp, mod = "Real_predator", 
-                   xlab = "Difference in risk-taking behaviour (Hedge's g)", 
+                   xlab = "Difference in risk-taking behaviour (SMDH)", 
                    group = "Study_ID",
                    angle = 0) +
   scale_fill_manual(values = rep("#eea196", 7)) +
@@ -463,7 +463,7 @@ mod.ln <- rma.mv(yi = yi, V = vi,
 summary(mod.ln)
 
 ln <- orchard_plot(mod.ln, mod = "Low_or_no_pred", 
-                   xlab = "Difference in risk-taking behaviour (Hedge's g)", 
+                   xlab = "Difference in risk-taking behaviour (SMDH)", 
                    group = "Study_ID",
                    angle = 0) +
   scale_fill_manual(values = rep("#eea196", 7)) +
@@ -507,7 +507,7 @@ mod.com <- rma.mv(yi = yi, V = vi,
 summary(mod.com)
 
 ct <- orchard_plot(mod.com, mod = "Comparison_type", 
-                   xlab = "Difference in risk-taking behaviour (Hedge's g)", 
+                   xlab = "Difference in risk-taking behaviour (SMDH)", 
                    group = "Study_ID",
                    angle = 0) +
   scale_fill_manual(values = rep("#eea196", 7)) +
@@ -552,7 +552,7 @@ mod.class <- rma.mv(yi = yi, V = vi,
 
 summary(mod.class)
 
-class <- orchard_plot(mod.class, mod = "Class", xlab = "Difference in risk-taking (Hedge's g)", group = "Study_ID",
+class <- orchard_plot(mod.class, mod = "Class", xlab = "Difference in risk-taking (SMDH)", group = "Study_ID",
                       angle = 0) + 
   scale_fill_manual(values = rep("#eea196", 7)) +
   scale_color_manual(values = rep("#eea196", 7))
@@ -1056,6 +1056,8 @@ Fig4 <- plot_grid(rp, rp.cv, ln, ln.cv, ct, ct.cv, labels = c("A", "B", "C", "D"
                   axis = "tblr")
 
 Fig4
+
+ggsave(here("Figures", "Fig4.pdf"), width = 8, height = 10)
 
 ###Tables#######
 
