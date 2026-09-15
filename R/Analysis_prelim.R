@@ -299,18 +299,27 @@ overall_dat <- data.frame(
   order = 0
 )
 
+diamond_dat <- data.frame(
+  x = c(overall_dat$lower, overall_dat$yi, overall_dat$upper, overall_dat$yi),
+  y = c(overall_dat$order, overall_dat$order + 0.25, 
+        overall_dat$order, overall_dat$order - 0.25)
+)
+diamond_height <- 8
+
+diamond_dat <- data.frame(
+  x = c(overall_dat$lower, overall_dat$yi, overall_dat$upper, overall_dat$yi),
+  y = c(0, diamond_height, 0, -diamond_height)
+)
+
 forest <- ggplot() +
   geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50") +
-  # individual effect sizes
   geom_segment(data = plot_dat, aes(y = order, yend = order, x = lower, xend = upper),
                colour = "#eea196", alpha = 0.5) +
   geom_point(data = plot_dat, aes(x = yi, y = order),
              size = 1.8, colour = "#eea196") +
-  # overall estimate as a diamond
-  geom_segment(data = overall_dat, aes(y = order, yend = order, x = lower, xend = upper),
-               colour = "#eea196", linewidth = 1) +
-  geom_point(data = overall_dat, aes(x = yi, y = order),
-             shape = 18, size = 5, colour = "#eea196") +
+  geom_polygon(data = diamond_dat, aes(x = x, y = y, group = 1),
+               fill = "#eea196", colour = "#eea196") +
+  scale_y_continuous(breaks = NULL) +
   theme_minimal() +
   xlab("Difference in risk-taking (SMDH)") +
   theme(
@@ -563,7 +572,7 @@ class
 
 ####Eggers regression - significant intercept - evidence of pub bias
 
-es2$effectN <- (es2$n_control * es2$n_exp) / (es2$n_control + es2$n_exp)
+es2$effectN <- (4* es2$n_control * es2$n_exp) / (es2$n_control + es2$n_exp)
 es2$sqeffectN <- sqrt(es2$effectN)
 
 #' [EJL Changed:]
@@ -580,6 +589,21 @@ mod.egg <- rma.mv(yi = yi, V = vi,
                   sparse = TRUE)
 
 summary(mod.egg)
+
+
+mod.egg2 <- rma.mv(yi = yi, V = vi,
+                  random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                                #~1 | Species, # phylo effect 
+                                ~1 | Species2#, # non-phylo effect 
+                  ), #' [EJL Change]
+                  # ~1 | Species, # phylo effect 
+                  # ~1 | Species2),  
+                  data =  es2,
+                  mods = ~ effectN,
+                  test = "t",
+                  sparse = TRUE)
+
+summary(mod.egg2) #report this 
 
 #exploring pub bias 
 
@@ -817,6 +841,13 @@ overall_dat.cv <- data.frame(
   order = 0
 )
 
+diamond_height.cv <- 8
+
+diamond_dat.cv <- data.frame(
+  x = c(overall_dat.cv$lower, overall_dat.cv$yi, overall_dat.cv$upper, overall_dat.cv$yi),
+  y = c(0, diamond_height.cv, 0, -diamond_height.cv)
+)
+
 forest.cv <- ggplot() +
   geom_vline(xintercept = 0, linetype = "dashed", colour = "grey50") +
   # individual effect sizes
@@ -824,11 +855,10 @@ forest.cv <- ggplot() +
                colour = "#989aae", alpha = 0.5) +
   geom_point(data = plot_dat.cv, aes(x = yi, y = order),
              size = 1.8, colour = "#989aae") +
-  # overall estimate as a diamond
-  geom_segment(data = overall_dat.cv, aes(y = order, yend = order, x = lower, xend = upper),
-               colour = "#989aae", linewidth = 1) +
-  geom_point(data = overall_dat.cv, aes(x = yi, y = order),
-             shape = 18, size = 5, colour = "#989aae") +
+  # overall estimate as a true CI-width diamond
+  geom_polygon(data = diamond_dat.cv, aes(x = x, y = y, group = 1),
+               fill = "#989aae", colour = "#989aae") +
+  scale_y_continuous(breaks = NULL) +
   theme_minimal() +
   xlab("Difference in heterogeneity (lnCVR)") +
   theme(
