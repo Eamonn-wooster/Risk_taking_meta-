@@ -573,7 +573,7 @@ class
 ####Eggers regression - significant intercept - evidence of pub bias
 
 es2$effectN <- (4* es2$n_control * es2$n_exp) / (es2$n_control + es2$n_exp)
-es2$sqeffectN <- sqrt(es2$effectN)
+es2$sqeffectN <- sqrt(1/es2$effectN)
 
 #' [EJL Changed:]
 mod.egg <- rma.mv(yi = yi, V = vi,
@@ -643,7 +643,7 @@ summary(mod.mad) # no effect
 #' [If you specify strata I think]
 
 cook.out <- cooks.distance(model = mod.overall,
-                           cluster = Study_ID)
+                           cluster = mod.overall$data$Study_ID)
 # There are a few different thresholds but I've seen a lot that exclude studies with cook > 4/N studies
 4 / length(unique(cook.out))
 
@@ -657,8 +657,6 @@ dat <- es %>%
   mutate(leave_out = paste(First_author, Year, sep = "_"))
 dat$leave_out <- as.factor(dat$leave_out)
 
-rerun <- F
-if(rerun){
   LeaveOneOut_effectsize <- list()
   for (i in 1:length(levels(dat$leave_out))) {
     temp_dat <- dat %>%
@@ -683,7 +681,6 @@ if(rerun){
   est.func <- function(model) {
     df <- data.frame(est = model$b, lower = model$ci.lb, upper = model$ci.ub)
     return(df)
-  }
   
   # form data frame
   MA_oneout <- lapply(LeaveOneOut_effectsize, function(x) est.func(x)) %>%
@@ -696,9 +693,7 @@ if(rerun){
   # save the runs
   saveRDS(MA_oneout, here("R", "MA_oneout.RDS"))
   
-} else {
-  MA_oneout <- readRDS(here("R", "MA_oneout.RDS"))
-}
+} 
 
 # plotting
 leaveoneout <- ggplot(MA_oneout) +
