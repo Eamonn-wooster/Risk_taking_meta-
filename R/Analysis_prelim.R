@@ -737,6 +737,23 @@ mod.behav.sens <- rma.mv(yi = yi, V = vi,
 
 summary(mod.behav.sens)
 
+#Dropping the PCA values as sens analysis 
+
+sens.es.pca <- filter(es, Metric != "PCA values")
+
+mod.behav.sens.pca <- rma.mv(yi = yi, V = vi,
+                         random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                                       #~1 | Species, # phylo effect 
+                                       ~1 | Species2#, # non-phylo effect 
+                         ), #' [EJL Change]
+                         # ~1 | Species, # phylo effect 
+                         # ~1 | Species2),  
+                         data =  sens.es.pca,
+                         test = "t",
+                         sparse = TRUE)
+
+summary(mod.behav.sens.pca)
+
 #removing those studies does NOT change the overall results!!!
 
 
