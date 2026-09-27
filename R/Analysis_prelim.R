@@ -141,19 +141,6 @@ data$Firstauthor_Year <- paste(data$First_author, data$Year, sep = "_")
 
 data$Study_ID <- factor(as.numeric(as.factor(data$Firstauthor_Year)))
 
-# ###Sort of the negative issues
-# # 
-# inv <- filter(data, Sign_inverted == "Yes")
-# 
-# not <- filter(data, Sign_inverted == "No")
-# # 
-# # #Ok lets flip the sign back for inv
-# # 
-# inv$Mean_control <- -inv$Mean_control
-# 
-# inv$Mean_exp <- -inv$Mean_exp
-# 
-# data2 <- rbind(inv, not)
 
 ############################ Hedges Effect Size ################################
 
@@ -193,39 +180,6 @@ es2 <- rbind(es_inv, es_not)
 ################################## Hedges Models ##################################
 
 
-mod.overall.vcv <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
-                      random = list(#~1 | Study_ID / Obs_ID, #' [EJL changed]
-                                    ~1 | Species, # phylo effect 
-                                    ~1 | Species2#, # non-phylo effect 
-                      ), #' [EJL changed]
-                      data =  es2,
-                      # control = list(optimizer="BFGS"),
-                      test = "t",
-                      sparse = TRUE,
-                      R = list(Species = cor1))
-
-summary(mod.overall.vcv)
-
-
-mod.overall <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
-                             random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
-                                           ~1 | Species, # phylo effect 
-                                           ~1 | Species2#, # non-phylo effect 
-                                           ), #' [EJL changed]
-                             data =  es2,
-                             # control = list(optimizer="BFGS"),
-                             test = "t",
-                             sparse = TRUE,
-                             R = list(Species = cor1))
-
-summary(mod.overall)
-AIC(mod.overall.vcv, mod.overall)
-# Big improvement without VCV
-
-# >>> Choose optimal random effect (EJL) ----------------------------------
-#' [EJL:] Sigmas are super low for some of the levels, which could bias your estimates.
-#' I would compare to simpler models before reporting.
-
 mod.overall.simple1 <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
                               random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
                                             #~1 | Species, # phylo effect 
@@ -237,24 +191,6 @@ mod.overall.simple1 <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
                               sparse = TRUE)
 
 summary(mod.overall.simple1)
-AIC(mod.overall, mod.overall.simple1)
-# Improved
-
-
-mod.overall.simple2 <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
-                              random = list(~1 | Study_ID / Obs_ID#, #' [EJL changed]
-                                            #~1 | Species, # phylo effect 
-                                            #~1 | Species2#, # non-phylo effect 
-                              ), #' [EJL changed]
-                              data =  es2,
-                              # control = list(optimizer="BFGS"),
-                              test = "t",
-                              sparse = TRUE)
-
-summary(mod.overall.simple2)
-
-AIC(mod.overall.simple1, mod.overall.simple2)
-
 
 
 # Copy best model:
@@ -638,21 +574,8 @@ mod.mad <- rma.mv(yi = yi, V = vi,
 
 summary(mod.mad) # no effect
 
-###Leave on out####
-#' [EJL: I think cooks.distance() on the model object basically does LOO (and code is one line..It'll give you a value that indicates how much estimates changed with each study)]
-#' [If you specify strata I think]
+###Leave one out####
 
-cook.out <- cooks.distance(model = mod.overall,
-                           cluster = mod.overall$data$Study_ID)
-# There are a few different thresholds but I've seen a lot that exclude studies with cook > 4/N studies
-4 / length(unique(cook.out))
-
-cook.out[cook.out > 4 / length(unique(cook.out))]
-# Which is only study 42. So you could rerun those models without study 42.
-
-
-
-#' [Back to original code:]
 dat <- es %>%
   mutate(leave_out = paste(First_author, Year, sep = "_"))
 dat$leave_out <- as.factor(dat$leave_out)
@@ -681,7 +604,8 @@ dat$leave_out <- as.factor(dat$leave_out)
   est.func <- function(model) {
     df <- data.frame(est = model$b, lower = model$ci.lb, upper = model$ci.ub)
     return(df)
-  
+  } 
+    
   # form data frame
   MA_oneout <- lapply(LeaveOneOut_effectsize, function(x) est.func(x)) %>%
     bind_rows() %>%
@@ -693,7 +617,7 @@ dat$leave_out <- as.factor(dat$leave_out)
   # save the runs
   saveRDS(MA_oneout, here("R", "MA_oneout.RDS"))
   
-} 
+
 
 # plotting
 leaveoneout <- ggplot(MA_oneout) +
@@ -760,7 +684,7 @@ summary(mod.behav.sens.pca)
 ##############lncvr models##################
 
 #removing negatives from the dataset
-cv <- filter(data2, Mean_control > 0)
+cv <- filter(data, Mean_control > 0)
 
 cv <- filter(cv, Mean_exp > 0)
 
@@ -788,35 +712,9 @@ cv$Obs_ID <- factor(1:nrow(cv))
 mod.overall_cv <- rma.mv(yi = yi, V = vi,
                          random = list(~1 | Study_ID / Obs_ID), 
                          data =  cv,
-                         # control = list(optimizer="BFGS"),
                          test = "t",
                          sparse = TRUE)
 
-#species is doing nothing, literally 0 needs to go
-mod.overall_cv2 <- rma.mv(yi = yi, V = vi,
-                       random = list(~1 | Study_ID / Obs_ID,
-                                     ~1 | Species, # phylo effect 
-                                     ~1 | Species2 # non-phylo effect 
-                                     ), 
-                       data =  cv,
-                       test = "t",
-                       sparse = TRUE,
-                       R = list(Species = cor1))
-
-AIC(mod.overall_cv, mod.overall_cv2)
-
-mod.overall_cv3 <- rma.mv(yi = yi, V = vi,
-                         random = list(~1 | Study_ID / Obs_ID,
-                                       ~1 | Species2), 
-                         data =  cv,
-                         test = "t",
-                         sparse = TRUE)
-
-
-AIC(mod.overall_cv, mod.overall_cv3)
-
-# Copy best model: simplest and adding species does nothing and has low sigma
-mod.overall_cv <- mod.overall_cv
 
 summary(mod.overall_cv)
 
