@@ -141,14 +141,14 @@ data$Firstauthor_Year <- paste(data$First_author, data$Year, sep = "_")
 
 data$Study_ID <- factor(as.numeric(as.factor(data$Firstauthor_Year)))
 
-###Sort of the negative issues
-
+# ###Sort of the negative issues
+# 
 inv <- filter(data, Sign_inverted == "Yes")
 
 not <- filter(data, Sign_inverted == "No")
-
-#Ok lets flip the sign back for inv
-
+# 
+# #Ok lets flip the sign back for inv
+# 
 inv$Mean_control <- -inv$Mean_control
 
 inv$Mean_exp <- -inv$Mean_exp
