@@ -142,18 +142,18 @@ data$Firstauthor_Year <- paste(data$First_author, data$Year, sep = "_")
 data$Study_ID <- factor(as.numeric(as.factor(data$Firstauthor_Year)))
 
 # ###Sort of the negative issues
+# # 
+# inv <- filter(data, Sign_inverted == "Yes")
 # 
-inv <- filter(data, Sign_inverted == "Yes")
-
-not <- filter(data, Sign_inverted == "No")
+# not <- filter(data, Sign_inverted == "No")
+# # 
+# # #Ok lets flip the sign back for inv
+# # 
+# inv$Mean_control <- -inv$Mean_control
 # 
-# #Ok lets flip the sign back for inv
+# inv$Mean_exp <- -inv$Mean_exp
 # 
-inv$Mean_control <- -inv$Mean_control
-
-inv$Mean_exp <- -inv$Mean_exp
-
-data2 <- rbind(inv, not)
+# data2 <- rbind(inv, not)
 
 ############################ Hedges Effect Size ################################
 
@@ -167,7 +167,7 @@ es <- escalc(
   m2i = Mean_control,
   sd2i = SD_cont_trans,
   n2i = n_control,
-  data = data2
+  data = data
 )
 
 
