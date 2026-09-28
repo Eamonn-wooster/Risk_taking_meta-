@@ -196,6 +196,7 @@ summary(mod.overall.simple1)
 # Copy best model:
 mod.overall <- mod.overall.simple1
 
+
 # >>> Final model summaries/plot ---------------------------------------------------------
 
 
@@ -576,7 +577,7 @@ summary(mod.mad) # no effect
 
 ###Leave one out####
 
-dat <- es %>%
+dat <- es2 %>%
   mutate(leave_out = paste(First_author, Year, sep = "_"))
 dat$leave_out <- as.factor(dat$leave_out)
 
@@ -585,15 +586,11 @@ dat$leave_out <- as.factor(dat$leave_out)
     temp_dat <- dat %>%
       dplyr::filter(leave_out != levels(dat$leave_out)[i])
     
-    VCV_leaveout <- vcalc(vi = temp_dat$vi, cluster = temp_dat$Study_ID, obs = temp_dat$Obs_ID, rho = 0.5)
-    
     LeaveOneOut_effectsize[[i]] <- rma.mv(yi = yi,
-                                          V = VCV_leaveout,
-                                          random = list(~1 | Study_ID,
-                                                        ~1 | Species,   # phylo effect
-                                                        ~1 | Species2,  # non-phylo effect
-                                                        ~1 | Obs_ID),
-                                          R = list(Species = cor1),
+                                          V = vi,
+                                          random = list(~1 | Study_ID / Obs_ID,
+                                                        ~1 | Species2),
+                                 
                                           test = "t",
                                           method = "REML",
                                           sparse = TRUE,
