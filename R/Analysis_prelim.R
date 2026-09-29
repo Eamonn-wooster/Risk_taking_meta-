@@ -27,14 +27,12 @@ pacman::p_load(devtools,
                ggplot2,
                viridis,
                data.table,
-               Matrix, # added
-               matrixcalc,# added
-               ape, # added
+               Matrix, 
+               matrixcalc,
+               ape,
                multcomp,
                taxize,
                cowplot
-           #added
-               # miWQS #added
 ) 
 
 # Setting WD
@@ -68,8 +66,6 @@ cor1 <-  vcv(tree1b, corr=T)
 
 setdiff(dat$Species, tree1$tip.label)
 setdiff(tree1$tip.label, dat$Species)
-
-#' [EW - This HAS to return character(0) for the model to run]
 
 # creating non-phylo columns - has to be tree column 
 
@@ -157,12 +153,6 @@ es <- escalc(
   data = data
 )
 
-
-
-# Inspect the results
-
-print(es) 
-
 ##now we need to reinvert the effect sizes the sign on "yes" on sign-inverted
 
 es_inv <- filter(es, Sign_inverted == "Yes")
@@ -180,7 +170,7 @@ es2 <- rbind(es_inv, es_not)
 ################################## Hedges Models ##################################
 
 
-mod.overall.simple1 <- rma.mv(yi = yi, V = vi, #vcv, #' [EJL changed]
+mod.overall.simple1 <- rma.mv(yi = yi, V = vi, 
                               random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
                                             #~1 | Species, # phylo effect 
                                             ~1 | Species2#, # non-phylo effect 

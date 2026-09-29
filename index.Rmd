@@ -1,0 +1,848 @@
+---
+title: "**PREY EXHIBIT LESS RISKY BUT MORE VARIABLE BEHAVIOUR IN HIGH PREDATION ENVIRONMENTS**"
+subtitle: "**Supplementary Material**"
+written by: "**EIF Wooster, EJ Lundgren, K Wrensford, KM Gaynor & KL Laskowski**"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+    theme: simplex
+    number_sections: true
+    code_folding: hide
+    self_contained: false
+  
+---
+
+------------------------------------------------------------------------
+## Setting up
+
+### Loading Packages
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,    
+                      message = FALSE)
+#knitr::opts_chunk$set(eval = FALSE)
+```
+
+```{r, echo = T}
+
+# Loading Packages
+
+pacman::p_load(devtools, 
+               tidyverse, 
+               metafor, 
+               patchwork, 
+               R.rsp, orchaRd,
+               emmeans,
+               metafor,
+               orchaRd,
+               stringr,
+               dplyr,
+               broom,
+               tidyverse,
+               here,
+               broom,
+               ggplot2,
+               viridis,
+               data.table,
+               Matrix, 
+               matrixcalc,
+               ape,
+               multcomp,
+               taxize,
+               cowplot,
+               kableExtra,
+               Pandoc,
+               magrittr
+) 
+
+
+
+```
+
+
+### Reading in Dataset and Phylogentic Tree
+
+```{r, echo = T, results = 'hide'}
+
+# Reading in Data
+dat <- read.csv(here("Data/Analysis_ready.csv")) 
+
+#change a few specie names for analysis
+
+dat$Species <- gsub("Equus_quagga","Equus_burchellii_quagga", dat$Species)
+dat$Species <- gsub("Macropus_eugenii","Notamacropus_eugenii",  dat$Species)
+dat$Species <- gsub("Hyla_versicolor", "Dryophytes_versicolor",  dat$Species)
+dat$Species <- gsub("Bufo_americanus", "Anaxyrus_americanus",  dat$Species)
+dat$Species <- gsub( "Gambusiaa_hubbsi","Gambusia_hubbsi",  dat$Species)
+dat$Species <- gsub( "Gambusia_hubbsi ","Gambusia_hubbsi",  dat$Species)
+dat$Species <- gsub( "Brachyraphis_episcopi","Brachyrhaphis_episcopi",  dat$Species)
+
+# Reading in tree
+
+tree1 <- read.tree(here("Tree/Tree_risk.tre")) 
+
+# Getting branch length and correlation matrix
+
+tree1b <- compute.brlen(tree1)
+cor1 <-  vcv(tree1b, corr=T)
+
+# checking the match 
+
+setdiff(dat$Species, tree1$tip.label)
+setdiff(tree1$tip.label, dat$Species)
+
+# creating non-phylo columns - has to be tree column 
+
+dat$Species2 <- dat$Species
+
+```
+
+### Dataset  
+```{r, echo = T}
+
+# making a scrollable table
+kable(dat, "html", escape = FALSE) %>% kable_styling("striped", position = "left", full_width = TRUE) %>% 
+  column_spec(ncol(dat), width_min = "5in") %>% 
+  scroll_box(width = "100%", 
+    height = "500px")
+
+```
+
+### Converting error and adding columns for RE
+```{r, echo = T, results = 'hide'}
+### functions for converting error ------
+
+# Function for converting CI's to SD
+
+me_to_sd <- function(me, n, ci_level = 0.95) {
+  alpha <- 1 - ci_level
+  tcrit <- qt(1 - alpha/2, df = n - 1)
+  me * sqrt(n) / tcrit
+}
+
+# Function for converting SE to SD
+
+se_to_sd <- function(se, n) {
+  # se: standard error
+  # n: sample size
+  # return: standard deviation
+  sd_value <- se * sqrt(n)
+  return(sd_value)
+}
+
+### Converting error types
+
+unique(dat$Error_type)
+
+### >>> Standard deviation --------
+
+SD <- filter(dat, Error_type == "SD")
+
+SD$SD_cont_trans <- SD$SD_control
+
+SD$SD_exp_trans <- SD$SD_exp
+
+### >>> 95% CI's --------
+
+CI <- filter(dat, Error_type == "CI")
+
+CI$SD_cont_trans <- me_to_sd(CI$SD_control, CI$n_control)
+
+CI$SD_exp_trans <- me_to_sd(CI$SD_exp, CI$n_exp)
+
+### >>> Standard error --------
+
+SE <- filter(dat, Error_type == "SE")
+
+SE$SD_cont_trans <- se_to_sd(SE$SD_control, SE$n_control)
+
+SE$SD_exp_trans <- se_to_sd(SE$SD_exp, SE$n_exp)
+
+# Put them back together!!
+
+data <- rbind(SD, CI, SE)
+
+# obs level random effect
+
+data$Obs_ID <- factor(1:nrow(data))
+
+# Study level random effect 
+
+data$Firstauthor_Year <- paste(data$First_author, data$Year, sep = "_")
+
+data$Study_ID <- factor(as.numeric(as.factor(data$Firstauthor_Year)))
+
+```
+### Calculating SMD and lnCVR effect size
+
+```{r, echo = T}
+
+# Calculate Hedges' g
+
+es <- escalc(
+  measure = "SMDH",     
+  m1i = Mean_exp,
+  sd1i = SD_exp_trans,
+  n1i = n_exp,
+  m2i = Mean_control,
+  sd2i = SD_cont_trans,
+  n2i = n_control,
+  data = data
+)
+
+##now we need to invert the effect sizes the sign on "yes" on sign-inverted to ensure risk = bigger
+
+es_inv <- filter(es, Sign_inverted == "Yes")
+
+es_not <- filter(es, Sign_inverted == "No")
+
+#Ok lets flip the sign back for inv
+
+es_inv$yi <- -es_inv$yi
+
+
+es2 <- rbind(es_inv, es_not)
+
+
+# Calculate lnCVR
+
+#removing negatives from the dataset
+cv <- filter(data, Mean_control > 0)
+
+cv <- filter(cv, Mean_exp > 0)
+
+#remove methods where a value could be negative 
+
+cv <- filter(cv, Can_be_negitive != "Yes")
+
+
+# Calculate lncvr
+
+cv <- escalc(
+  measure = "CVR",     
+  m1i = Mean_exp,
+  sd1i = SD_exp_trans,
+  n1i = n_exp,
+  m2i = Mean_control,
+  sd2i = SD_cont_trans,
+  n2i = n_control,
+  data = cv
+)
+
+cv$Obs_ID <- factor(1:nrow(cv))
+
+```
+
+## Meta-analysis SMD  {.tabset}
+
+```{r, echo = T}
+
+mod.overall.simple1 <- rma.mv(yi = yi, V = vi, 
+                              random = list(~1 | Study_ID / Obs_ID, 
+                                            ~1 | Species2 
+                              ), 
+                              data =  es2,
+                              # control = list(optimizer="BFGS"),
+                              test = "t",
+                              sparse = TRUE)
+
+summary(mod.overall.simple1)
+
+overall <- orchard_plot(mod.overall.simple1, xlab = "Difference in risk-taking (SMDH)", group = "Study_ID",
+                        angle = 0, col = "#eea196")
+
+overall
+
+round(i2_ml(mod.overall.simple1), 2)
+
+```
+
+## Meta-regression SMD:Uni-moderator {.tabset}
+
+### Behaviour type
+
+```{r, echo = T}
+
+es2$Behaviour_type <- factor(
+  es2$Behaviour_type,
+  levels = sort(unique(es2$Behaviour_type), decreasing = TRUE)
+)
+
+
+mod.behav <- rma.mv(yi = yi, V = vi,
+                      random = list(~1 | Study_ID / Obs_ID, 
+                                    ~1 | Species2
+                      ), 
+                      data =  es2,
+                      mods = ~ Behaviour_type -1,
+                      test = "t",
+                      sparse = TRUE)
+        
+
+
+summary(mod.behav)
+
+
+behav <- orchard_plot(mod.behav, mod = "Behaviour_type", 
+                      xlab = "Difference in risk-taking behaviour (SMDH)", 
+                      group = "Study_ID",
+                      angle = 0) +
+  scale_fill_manual(values = rep("#eea196", 7)) +
+  scale_color_manual(values = rep("#eea196", 7))
+
+behav
+
+```
+
+### Sex
+
+```{r, echo = T}
+ses <- filter(es2, Sex != "N/A")
+
+mod.sex <- rma.mv(yi = yi, V = vi,
+                  random = list(~1 | Study_ID / Obs_ID, 
+                                ~1 | Species2
+                  ), 
+                    data =  ses,
+                    mods = ~ Sex -1,
+                    test = "t",
+                    sparse = TRUE)
+
+summary(mod.sex)
+
+sexplot <- orchard_plot(mod.sex, xlab = "Difference in risk-taking behaviour (SMDH)", 
+                           group = "Study_ID", mod = "Sex")
+
+sexplot
+
+```
+
+### Real vs simulated predation
+
+```{r, echo = T}
+
+es2$Real_predator <- as.factor(es2$Real_predator)
+
+
+mod.rp <- rma.mv(yi = yi, V = vi,
+                 random = list(~1 | Study_ID / Obs_ID, 
+                               ~1 | Species2
+                 ), 
+                 data =  es2, 
+                 mods = ~ Real_predator -1,
+                 test = "t",
+                 sparse = TRUE)
+
+summary(mod.rp)
+
+rp <- orchard_plot(mod.rp, mod = "Real_predator", 
+                   xlab = "Difference in risk-taking behaviour (SMDH)", 
+                   group = "Study_ID",
+                   angle = 0) +
+  scale_fill_manual(values = rep("#eea196", 7)) +
+  scale_color_manual(values = rep("#eea196", 7))
+
+rp
+
+```
+
+### Low vs no predator as control
+
+```{r, echo = T}
+
+mod.ln <- rma.mv(yi = yi, V = vi,
+                 random = list(~1 | Study_ID / Obs_ID, 
+                               ~1 | Species2
+                 ), 
+                 data =  es2, 
+                 mods = ~ Low_or_no_pred -1,
+                 test = "t",
+                 sparse = TRUE)
+
+summary(mod.ln)
+
+ln <- orchard_plot(mod.ln, mod = "Low_or_no_pred", 
+                   xlab = "Difference in risk-taking behaviour (SMDH)", 
+                   group = "Study_ID",
+                   angle = 0) +
+  scale_fill_manual(values = rep("#eea196", 7)) +
+  scale_color_manual(values = rep("#eea196", 7))
+
+ln
+
+```
+
+### adult vs juvenille
+
+```{r, echo = T}
+es2$Adult <- factor(es2$Adult, 
+                              levels = c("Adult", "Juvenille", "Both"))
+
+mod.aj <- rma.mv(yi = yi, V = vi,
+                 random = list(~1 | Study_ID / Obs_ID, 
+                               ~1 | Species2 
+                 ), 
+                 data =  es2, 
+                 mods = ~ Adult -1,
+                 test = "t",
+                 sparse = TRUE)
+
+summary(mod.aj)
+
+aj <- orchard_plot(mod.aj, mod = "Adult", 
+                   xlab = "Difference in risk-taking behaviour (SMDH)", 
+                   group = "Study_ID",
+                   angle = 0) +
+  scale_fill_manual(values = rep("#eea196", 7)) +
+  scale_color_manual(values = rep("#eea196", 7))
+
+aj
+
+```
+
+### Comparision type 
+
+```{r, echo = T}
+mod.com <- rma.mv(yi = yi, V = vi,
+                  random = list(~1 | Study_ID / Obs_ID, 
+                                ~1 | Species2
+                  ), 
+                  data =  es2, 
+                 mods = ~ Comparison_type -1,
+                 test = "t",
+                 sparse = TRUE)
+
+summary(mod.com)
+
+ct <- orchard_plot(mod.com, mod = "Comparison_type", 
+                   xlab = "Difference in risk-taking behaviour (SMDH)", 
+                   group = "Study_ID",
+                   angle = 0) +
+  scale_fill_manual(values = rep("#eea196", 7)) +
+  scale_color_manual(values = rep("#eea196", 7))
+
+ct
+
+```
+
+### Class
+
+```{r, echo = T}
+s2 <- es2 %>%
+  mutate(Class = recode(Class,
+                        "Actinopterygii" = "Ray-finned fishes",
+                        "Amphibia" = "Amphibians",
+                        "Mammalia" = "Mammals",
+                        "Reptilia" = "Reptiles",
+                        "Malacostraca" = "Crustaceans",
+                        "Chondrichthyes" = "Cartilaginous fishes",
+                        "Aves" = "Birds"
+  ))
+
+es2$Class <- factor(
+  es2$Class,
+  levels = sort(unique(es2$Class), decreasing = TRUE)
+)
+
+
+mod.class <- rma.mv(yi = yi, V = vi,
+                    random = list(~1 | Study_ID / Obs_ID, 
+                                  ~1 | Species2
+                    ), 
+                  data =  es2,
+                  mods = ~ Class -1,
+                  test = "t",
+                  sparse = TRUE)
+                
+
+summary(mod.class)
+
+class <- orchard_plot(mod.class, mod = "Class", xlab = "Difference in risk-taking (SMDH)", group = "Study_ID",
+                      angle = 0) + 
+  scale_fill_manual(values = rep("#eea196", 7)) +
+  scale_color_manual(values = rep("#eea196", 7))
+class   
+
+```
+
+## Meta-analysis lnCVR  {.tabset}
+
+```{r, echo = T}
+mod.overall_cv <- rma.mv(yi = yi, V = vi,
+                         random = list(~1 | Study_ID / Obs_ID), 
+                         data =  cv,
+                         test = "t",
+                         sparse = TRUE)
+
+
+summary(mod.overall_cv)
+
+
+overall_cv <- orchard_plot(mod.overall_cv, xlab = "Difference in heterogeneity (lnCVR)", group = "Study_ID",
+                           angle = 0)
+overall_cv <- overall_cv + scale_fill_manual(values = "#989aae") + scale_color_manual(values = "#989aae") 
+
+overall_cv
+
+```
+
+## Meta-regression lnCVR:Uni-moderator {.tabset}
+
+### Behaviour type lnCVR
+
+```{r, echo = T}
+cv$Behaviour_type <- factor(
+  cv$Behaviour_type,
+  levels = sort(unique(cv$Behaviour_type), decreasing = TRUE)
+)
+
+mod.behav_cv <- rma.mv(yi = yi, V = vi,
+                       random = list(~1 | Study_ID / Obs_ID), 
+                       data =  cv,
+                       mods = ~ Behaviour_type -1,
+                       test = "t",
+                       sparse = TRUE)
+
+summary(mod.behav_cv)
+
+behav.cv <- orchard_plot(mod.behav_cv, mod = "Behaviour_type", 
+                      xlab = "Difference in heterogeneity (lnCVR)", 
+                      group = "Study_ID",
+                      angle = 0) 
+
+behav.cv <- behav.cv +
+  scale_fill_manual(values = rep("#989aae", 7)) +
+  scale_color_manual(values = rep("#989aae", 7))
+behav.cv
+
+```
+
+
+### Sex lnCVR
+
+```{r, echo = T}
+ses_cv <- filter(cv, Sex != "N/A")
+
+
+mod.sex.cv <- rma.mv(yi = yi, V = vi,
+                   random = list(~1 | Study_ID / Obs_ID), 
+                     data =  ses_cv,
+                     mods = ~ Sex -1,
+                     test = "t",
+                     sparse = TRUE)
+
+summary(mod.sex.cv) 
+
+behav.cv <- orchard_plot(mod.sex.cv, mod = "Sex", 
+                      xlab = "Difference in heterogeneity (lnCVR)", 
+                      group = "Study_ID",
+                      angle = 0) 
+
+behav.cv <- behav.cv +
+  scale_fill_manual(values = rep("#989aae", 7)) +
+  scale_color_manual(values = rep("#989aae", 7))
+behav.cv
+
+```
+
+### Real vs simulated predation lnCVR
+
+```{r, echo = T}
+cv$Real_predator <- as.factor(cv$Real_predator)
+mod.rp.cv <- rma.mv(yi = yi, V = vi,
+                    random = list(~1 | Study_ID / Obs_ID), 
+                    data =  cv,
+                    mods = ~ Real_predator -1,
+                    test = "t",
+                    sparse = TRUE)
+
+summary(mod.rp.cv)
+
+rp.cv <- orchard_plot(mod.rp.cv, mod = "Real_predator", 
+                   xlab = "Difference in heterogeneity (lnCVR)", 
+                   group = "Study_ID",
+                   angle = 0) +
+  scale_fill_manual(values = rep("#989aae", 7)) +
+  scale_color_manual(values = rep("#989aae", 7))
+
+rp.cv
+
+```
+
+### Low vs no predator as control lnCVR
+
+```{r, echo = T}
+mod.ln.cv <- rma.mv(yi = yi, V = vi,
+                    random = list(~1 | Study_ID / Obs_ID), 
+                    data =  cv,
+                    mods = ~ Low_or_no_pred -1,
+                    test = "t",
+                    sparse = TRUE)
+
+summary(mod.ln.cv)
+
+
+ln.cv <- orchard_plot(mod.ln.cv, mod = "Low_or_no_pred", 
+                      xlab = "Difference in heterogeneity (lnCVR)", 
+                      group = "Study_ID",
+                      angle = 0) +
+  scale_fill_manual(values = rep("#989aae", 7)) +
+  scale_color_manual(values = rep("#989aae", 7))
+
+ln.cv
+
+```
+
+### Adult vs juvenille lnCVR
+
+```{r, echo = T}
+mod.ln.cv <- rma.mv(yi = yi, V = vi,
+                    random = list(~1 | Study_ID / Obs_ID), 
+                    data =  cv,
+                    mods = ~ Low_or_no_pred -1,
+                    test = "t",
+                    sparse = TRUE)
+
+summary(mod.ln.cv)
+
+
+ln.cv <- orchard_plot(mod.ln.cv, mod = "Low_or_no_pred", 
+                      xlab = "Difference in heterogeneity (lnCVR)", 
+                      group = "Study_ID",
+                      angle = 0) +
+  scale_fill_manual(values = rep("#989aae", 7)) +
+  scale_color_manual(values = rep("#989aae", 7))
+
+ln.cv
+
+```
+
+
+### Comparison type lnCVR
+
+```{r, echo = T}
+mod.com.cv <- rma.mv(yi = yi, V = vi,
+                     random = list(~1 | Study_ID / Obs_ID), 
+                     data =  cv,
+                     mods = ~ Comparison_type -1,
+                     test = "t",
+                     sparse = TRUE)
+
+summary(mod.com.cv)
+
+
+ct.cv <- orchard_plot(mod.com.cv, mod = "Comparison_type", 
+                      xlab = "Difference in heterogeneity (lnCVR)", 
+                      group = "Study_ID",
+                      angle = 0) +
+  scale_fill_manual(values = rep("#989aae", 7)) +
+  scale_color_manual(values = rep("#989aae", 7))
+
+ct.cv 
+```
+
+### Class lnCVR
+
+```{r, echo = T}
+cv <- cv %>%
+  mutate(Class = recode(Class,
+                        "Actinopterygii" = "Ray-finned fishes",
+                        "Amphibia" = "Amphibians",
+                        "Mammalia" = "Mammals",
+                        "Reptilia" = "Reptiles",
+                        "Malacostraca" = "Crustaceans",
+                        "Chondrichthyes" = "Cartilaginous fishes",
+                        "Aves" = "Birds"
+  ))
+
+
+
+cv$Class <- factor(
+  cv$Class,
+  levels = sort(unique(cv$Class), decreasing = TRUE)
+)
+
+mod.class.cv <- rma.mv(yi = yi, V = vi,
+                       random = list(~1 | Study_ID / Obs_ID), 
+                       data =  cv,
+                       mods = ~ Class -1,
+                       test = "t",
+                       sparse = TRUE)
+
+summary(mod.class.cv)
+
+class.cv <- orchard_plot(mod.class.cv, mod = "Class", xlab = "Heterogeneity in risk-taking (lnCVR)", group = "Study_ID",
+                      angle = 0) + 
+  scale_fill_manual(values = rep("#989aae", 7)) +
+  scale_color_manual(values = rep("#989aae", 7))
+class.cv  
+```
+
+
+
+## Publication bias {.tabset}
+
+### Decline effect for difference
+
+```{r, echo = T}
+
+mod.mad <- rma.mv(yi = yi, V = vi,
+                  random = list(~1 | Study_ID / Obs_ID, 
+                                ~1 | Species2
+                  ), 
+                  data =  es2,
+                          mods = ~ Year,
+                          test = "t",
+                          sparse = TRUE)
+
+
+summary(mod.mad) 
+
+```
+
+### Eggers regression + funnel
+
+```{r, echo = T}
+
+es2$effectN <- (4* es2$n_control * es2$n_exp) / (es2$n_control + es2$n_exp)
+es2$sqeffectN <- sqrt(1/es2$effectN)
+
+#' [EJL Changed:]
+mod.egg <- rma.mv(yi = yi, V = vi,
+                  random = list(~1 | Study_ID / Obs_ID, #' [EJL changed]
+                                #~1 | Species, # phylo effect 
+                                ~1 | Species2#, # non-phylo effect 
+                  ), #' [EJL Change]
+                  # ~1 | Species, # phylo effect 
+                  # ~1 | Species2),  
+                  data =  es2,
+                  mods = ~ sqeffectN,
+                  test = "t",
+                  sparse = TRUE)
+
+summary(mod.egg)
+
+
+funnel(mod.egg, 
+       yaxis="seinv",
+       xlab = "Standardized residuals",
+       ylab = "Precision (inverse of SE)",
+       
+)
+```
+
+### Leave one out
+
+```{r, echo = T}
+
+dat <- es2 %>%
+  mutate(leave_out = paste(First_author, Year, sep = "_"))
+dat$leave_out <- as.factor(dat$leave_out)
+
+  LeaveOneOut_effectsize <- list()
+  for (i in 1:length(levels(dat$leave_out))) {
+    temp_dat <- dat %>%
+      dplyr::filter(leave_out != levels(dat$leave_out)[i])
+    
+    LeaveOneOut_effectsize[[i]] <- rma.mv(yi = yi,
+                                          V = vi,
+                                          random = list(~1 | Study_ID / Obs_ID,
+                                                        ~1 | Species2),
+                                 
+                                          test = "t",
+                                          method = "REML",
+                                          sparse = TRUE,
+                                          data = temp_dat)
+  }
+  
+  # function for extracting est, ci.lb, and ci.ub from all models
+  est.func <- function(model) {
+    df <- data.frame(est = model$b, lower = model$ci.lb, upper = model$ci.ub)
+    return(df)
+  } 
+    
+  # form data frame
+  MA_oneout <- lapply(LeaveOneOut_effectsize, function(x) est.func(x)) %>%
+    bind_rows() %>%
+    mutate(left_out = levels(dat$leave_out))
+  
+  # preserve factor order for ggplot
+  MA_oneout$left_out <- factor(MA_oneout$left_out, levels = MA_oneout$left_out)
+  
+  # save the runs
+  saveRDS(MA_oneout, here("R", "MA_oneout.RDS"))
+  
+
+
+# plotting
+leaveoneout <- ggplot(MA_oneout) +
+  geom_hline(yintercept = 0, lty = 2, lwd = 1) +
+  geom_hline(yintercept = mod.overall.simple1$ci.lb, lty = 3, lwd = 0.75, colour = "black") +
+  geom_hline(yintercept = mod.overall.simple1$b,     lty = 1, lwd = 0.75, colour = "black") +
+  geom_hline(yintercept = mod.overall.simple1$ci.ub, lty = 3, lwd = 0.75, colour = "black") +
+  geom_pointrange(aes(x = left_out, y = est, ymin = lower, ymax = upper)) +
+  xlab("Study left out") +
+  ylab("Hedge' g") +
+  coord_flip() +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text.y = element_text(size = 6)
+  )
+
+leaveoneout
+
+
+
+```
+
+### Sensivity analysis for lnCVR as representative sample
+
+```{r, echo = T}
+sens.es <- filter(es2, Mean_control > 0)
+
+sens.es <- filter(sens.es, Mean_exp > 0)
+
+sens.es <- filter(sens.es, Can_be_negitive != "Yes")
+
+sens.es$Obs_ID <- factor(1:nrow(sens.es))
+
+mod.behav.sens <- rma.mv(yi = yi, V = vi,
+                         random = list(~1 | Study_ID / Obs_ID, 
+                                       ~1 | Species2
+                         ), 
+                    data =  sens.es,
+                    test = "t",
+                    sparse = TRUE)
+
+summary(mod.behav.sens)
+```
+
+
+### Sensivity analysis for lnCVR as representative sample
+```{r, echo = T}
+sens.es.pca <- filter(es2, Metric != "PCA values")
+
+mod.behav.sens.pca <- rma.mv(yi = yi, V = vi,
+                         random = list(~1 | Study_ID / Obs_ID, 
+                                       ~1 | Species2
+                         ), 
+                         data =  sens.es.pca,
+                         test = "t",
+                         sparse = TRUE)
+
+summary(mod.behav.sens.pca)
+```
+
+## R Session Information
+
+```{r, echo = T}
+library(sessioninfo)
+session_info()
